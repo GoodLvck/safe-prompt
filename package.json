@@ -1,0 +1,27 @@
+{
+  "name": "safe-prompt-extension",
+  "version": "1.0.0",
+  "description": "",
+  "main": "content.js",
+  "scripts": {
+    "build": "esbuild src/content.js --bundle --outfile=dist/content.js --format=iife"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GoodLvck/safe-prompt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/GoodLvck/safe-prompt/issues"
+  },
+  "homepage": "https://github.com/GoodLvck/safe-prompt#readme",
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
