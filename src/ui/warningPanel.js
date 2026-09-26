@@ -1,3 +1,5 @@
+import { setTextToElement } from "../utils/dom.js";
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -5,24 +7,6 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
-
-function setTextToElement(element, newText) {
-  if (element.isContentEditable) {
-    element.innerText = newText;
-  } else {
-    element.value = newText;
-  }
-
-  element.dispatchEvent(
-    new InputEvent("input", {
-      bubbles: true,
-      inputType: "insertText",
-      data: newText
-    })
-  );
-
-  element.focus();
 }
 
 export function removeExistingWarning() {
@@ -44,13 +28,29 @@ export function positionWarning(warning, element) {
     `${window.scrollX + rect.left}px`;
 }
 
-export function showWarning(element, state) {
+export function showWarning(
+  element,
+  state,
+  {
+    onAutoProtect,
+    onReview
+  }
+) {
   removeExistingWarning();
 
   const warning = document.createElement("div");
   warning.id = "safeprompt-warning";
 
-  const itemsHtml = state.detectedItems
+  const uniqueItems = [
+    ...new Map(
+      state.detectedItems.map(item => [
+        item.token,
+        item
+      ])
+    ).values()
+  ];
+
+  const itemsHtml = uniqueItems
     .map((item) => `
       <div class="sp-item">
         <div class="sp-item-info">
@@ -73,8 +73,8 @@ export function showWarning(element, state) {
   warning.innerHTML = `
     <div class="sp-header">
       <div>
-        🔒 ${state.detectedItems.length}
-        private value${state.detectedItems.length !== 1 ? "s" : ""}
+        🔒 ${uniqueItems.length}
+        private value${uniqueItems.length !== 1 ? "s" : ""}
         detected
       </div>
 
@@ -110,93 +110,102 @@ export function showWarning(element, state) {
     );
 
   document
-  .getElementById("sp-auto-protect")
-  .addEventListener("click", () => {
-    setTextToElement(
-      element,
-      state.tokenizedPrompt
-    );
-
-    removeExistingWarning();
-  });
+    .getElementById("sp-auto-protect")
+    .addEventListener("click", async () => {
+      await onAutoProtect();
+    });
 
   document
   .getElementById("sp-review-manually")
   .addEventListener("click", () => {
-    showManualReview(
-      element,
-      state
-    );
+    onReview();
   });
 }
 
-function showManualReview(element, state) {
+export function showManualReview(
+  element,
+  state,
+  {
+    onApplyManual
+  }
+) {
   removeExistingWarning();
 
-  const review = document.createElement("div");
-  review.id = "safeprompt-warning";
+  const panel = document.createElement("div");
+  panel.id = "safeprompt-warning";
 
-  const selections = {};
+  const uniqueItems = [
+    ...new Map(
+      state.detectedItems.map(item => [
+        item.token,
+        item
+      ])
+    ).values()
+  ];
 
-  // Default: protect every detected value
-  state.detectedItems.forEach((item) => {
-    selections[item.token] = "protect";
-  });
-
-  const itemsHtml = state.detectedItems
-    .map(
-      (item, index) => `
-        <div class="sp-item">
-
-          <div class="sp-item-info">
-
-            <div class="sp-item-label">
-              ${escapeHtml(item.label)}
-            </div>
-
-            <div class="sp-item-value">
-              ${escapeHtml(item.value)}
-            </div>
-
-            <div class="sp-item-replacement">
-              → ${escapeHtml(item.token)}
-            </div>
-
-            <div class="sp-review-options">
-
-              <label>
-                <input
-                  type="radio"
-                  name="sp-item-${index}"
-                  value="protect"
-                  data-token="${escapeHtml(item.token)}"
-                  checked
-                >
-                Protect
-              </label>
-
-              <label>
-                <input
-                  type="radio"
-                  name="sp-item-${index}"
-                  value="keep"
-                  data-token="${escapeHtml(item.token)}"
-                >
-                Keep original
-              </label>
-
-            </div>
-
+  const itemsHtml = uniqueItems
+    .map((item, index) => `
+      <div class="sp-item" data-index="${index}">
+        <div class="sp-item-info">
+          <div class="sp-item-label">
+            ${item.label}
           </div>
 
+          <div class="sp-item-value">
+            ${item.value}
+          </div>
+
+          <div class="sp-item-replacement">
+            ${item.token}
+          </div>
         </div>
-      `
-    )
+
+        <div class="sp-manual-options">
+
+          <label>
+            <input
+              type="radio"
+              name="decision-${index}"
+              value="KEEP"
+            >
+            Keep
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="decision-${index}"
+              value="REPLACE"
+              checked
+            >
+            Replace
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="decision-${index}"
+              value="GENERALIZE"
+            >
+            Generalize
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="decision-${index}"
+              value="REMOVE"
+            >
+            Remove
+          </label>
+
+        </div>
+      </div>
+    `)
     .join("");
 
-  review.innerHTML = `
+  panel.innerHTML = `
     <div class="sp-header">
-
       <div>
         Review private information
       </div>
@@ -204,7 +213,6 @@ function showManualReview(element, state) {
       <button id="sp-close-button">
         ×
       </button>
-
     </div>
 
     <div class="sp-items">
@@ -212,24 +220,19 @@ function showManualReview(element, state) {
     </div>
 
     <div class="sp-actions">
-
-      <button id="sp-review-back">
-        Back
+      <button id="sp-cancel-review">
+        Cancel
       </button>
 
       <button id="sp-apply-review">
-        Apply
+        Apply changes
       </button>
-
     </div>
   `;
 
-  document.body.appendChild(review);
+  document.body.appendChild(panel);
 
-  positionWarning(
-    review,
-    element
-  );
+  positionWarning(panel, element);
 
   document
     .getElementById("sp-close-button")
@@ -239,69 +242,43 @@ function showManualReview(element, state) {
     );
 
   document
-    .getElementById("sp-review-back")
-    .addEventListener("click", () => {
-      showWarning(
-        element,
-        state
-      );
-    });
-
-  review
-    .querySelectorAll(
-      'input[type="radio"]'
-    )
-    .forEach((radio) => {
-
-      radio.addEventListener(
-        "change",
-        (event) => {
-
-          const token =
-            event.target.dataset.token;
-
-          selections[token] =
-            event.target.value;
-        }
-      );
-
-    });
+    .getElementById("sp-cancel-review")
+    .addEventListener(
+      "click",
+      removeExistingWarning
+    );
 
   document
     .getElementById("sp-apply-review")
-    .addEventListener("click", () => {
+    .addEventListener(
+      "click",
+      () => {
+        const manualDecisions =
+          uniqueItems.map((item, index) => {
+            const selected =
+              panel.querySelector(
+                `input[name="decision-${index}"]:checked`
+              );
 
-      let result =
-        state.tokenizedPrompt;
+            return {
+              token: item.token,
+              action:
+                selected?.value || "KEEP",
+              replacementType:
+                selected?.value === "REPLACE"
+                  ? "semantic"
+                  : selected?.value ===
+                    "GENERALIZE"
+                    ? "generalized"
+                    : null,
+              reason:
+                "Selected manually by the user."
+            };
+          });
 
-      for (
-        const item
-        of state.detectedItems
-      ) {
-
-        const choice =
-          selections[item.token];
-
-        if (choice === "keep") {
-
-          result =
-            result.replaceAll(
-              item.token,
-              item.value
-            );
-
-        }
-
-        // "protect" does nothing because
-        // tokenizedPrompt already contains
-        // the protected token.
+        onApplyManual(
+          manualDecisions
+        );
       }
-
-      setTextToElement(
-        element,
-        result
-      );
-
-      removeExistingWarning();
-    });
+    );
 }

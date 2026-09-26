@@ -8,6 +8,11 @@
     "128": "logo.png"
   },
 
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -26,4 +31,5 @@
       ]
     }
   ]
+
 }

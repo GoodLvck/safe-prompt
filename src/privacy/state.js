@@ -5,9 +5,12 @@ export const safePromptState = {
   detectedItems: [],
   privateMap: {},
 
-  // Used in later phases
+  aiDecisions: [],
+  protectedPrompt: "",
+
   decisions: {},
   replacementMap: {},
+  report: [],
 
   activeElement: null
 };
@@ -19,8 +22,12 @@ export function resetState() {
   safePromptState.detectedItems = [];
   safePromptState.privateMap = {};
 
+  safePromptState.aiDecisions = [];
+  safePromptState.protectedPrompt = "";
+
   safePromptState.decisions = {};
   safePromptState.replacementMap = {};
+  safePromptState.report = [];
 
   safePromptState.activeElement = null;
 }

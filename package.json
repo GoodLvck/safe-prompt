@@ -4,7 +4,7 @@
   "description": "",
   "main": "content.js",
   "scripts": {
-    "build": "esbuild src/content.js --bundle --outfile=dist/content.js --format=iife"
+    "build": "esbuild src/content.js src/background.js --bundle --outdir=dist"
   },
   "repository": {
     "type": "git",
@@ -19,7 +19,9 @@
   },
   "homepage": "https://github.com/GoodLvck/safe-prompt#readme",
   "dependencies": {
-    "@huggingface/transformers": "^4.3.0"
+    "@google/genai": "^2.24.0",
+    "@huggingface/transformers": "^4.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

@@ -1,19 +1,9 @@
 import { detectSensitiveEntities } from "./detection/detector.js";
 import { tokenizePrompt } from "./privacy/tokenizer.js";
 import { safePromptState } from "./privacy/state.js";
-
-import {
-  showWarning,
-  removeExistingWarning
-} from "./ui/warningPanel.js";
-
-function getTextFromElement(element) {
-  if (element.isContentEditable) {
-    return element.innerText;
-  }
-
-  return element.value;
-}
+import { showWarning, removeExistingWarning } from "./ui/warningPanel.js";
+import { transformPrompt } from "./privacy/transformer.js";
+import { getTextFromElement, setTextToElement } from "./utils/dom.js";
 
 function isSupportedInput(element) {
   if (!element) return false;
@@ -100,8 +90,118 @@ async function handlePromptInput(event) {
 
   showWarning(
     element,
-    safePromptState
+    safePromptState,
+    {
+      onAutoProtect:
+        handleAutoProtect,
+
+      onReview: () => {
+        showManualReview(
+          element,
+          safePromptState,
+          {
+            onApplyManual:
+              handleManualProtect
+          }
+        );
+      }
+    }
   );
+}
+
+function handleManualProtect(manualDecisions) {
+  safePromptState.aiDecisions = manualDecisions;
+
+  const transformation = transformPrompt(
+    safePromptState.tokenizedPrompt,
+    manualDecisions,
+    safePromptState.privateMap
+  );
+
+  safePromptState.protectedPrompt =
+    transformation.protectedPrompt;
+
+  safePromptState.replacementMap =
+    transformation.replacementMap;
+
+  safePromptState.report =
+    transformation.report;
+
+  setTextToElement(
+    safePromptState.activeElement,
+    safePromptState.protectedPrompt
+  );
+
+  removeExistingWarning();
+}
+
+async function handleAutoProtect() {
+  try {
+    const response =
+      await requestPrivacyAnalysis(
+        safePromptState.tokenizedPrompt
+      );
+
+    const decisions =
+      response.decisions;
+
+    safePromptState.aiDecisions =
+      decisions;
+
+    const transformation =
+      transformPrompt(
+        safePromptState.tokenizedPrompt,
+        decisions,
+        safePromptState.privateMap
+      );
+
+    safePromptState.protectedPrompt =
+      transformation.protectedPrompt;
+
+    safePromptState.replacementMap =
+      transformation.replacementMap;
+
+    safePromptState.report =
+      transformation.report;
+
+    setTextToElement(
+      safePromptState.activeElement,
+      safePromptState.protectedPrompt
+    );
+
+    removeExistingWarning();
+
+    console.log(
+      "SafePrompt report:",
+      safePromptState.report
+    );
+  }
+
+  catch (error) {
+    console.error(
+      "SafePrompt Auto Protect failed:",
+      error
+    );
+  }
+}
+
+async function requestPrivacyAnalysis(
+  tokenizedPrompt
+) {
+  const response =
+    await chrome.runtime.sendMessage({
+      type: "ANALYZE_PROMPT",
+      tokenizedPrompt
+    });
+
+  if (!response?.success) {
+    throw new Error(
+      response?.error ||
+      "SafePrompt analysis failed."
+    );
+  }
+
+  return response.result;
 }
 
 let typingTimer;

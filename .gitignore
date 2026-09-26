@@ -47,3 +47,5 @@ coverage/
 # Optional local model/cache folders
 models/
 cache/
+
+src/config.js
