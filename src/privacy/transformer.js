@@ -82,7 +82,9 @@ export function transformPrompt(
         const replacement =
           createReplacement(
             privateItem,
-            decision
+            decision,
+            result,
+            token
           );
 
         result = result.replaceAll(
@@ -176,42 +178,82 @@ export function transformPrompt(
 
 function createReplacement(
   privateItem,
-  decision
+  decision,
+  text,
+  token
 ) {
-  const replacementType =
-    decision.replacementType;
-
-  // Si el Decision Engine pide
-  // un replacement ficticio
   if (
-    replacementType === "fictional"
+    decision.replacementType === "fictional"
   ) {
     return createFictionalReplacement(
       privateItem
     );
   }
 
-  // Por defecto usamos una
-  // sustitución semántica.
   return createSemanticReplacement(
-    privateItem
+    privateItem,
+    text,
+    token
   );
 }
 
-
 function createSemanticReplacement(
-  privateItem
+  privateItem,
+  text,
+  token
 ) {
+  const context = getTokenContext(
+    text,
+    token
+  ).toLowerCase();
+
   switch (privateItem.type) {
 
     case "person":
       return "the person";
 
-    case "organization":
-      return "my organization";
+    case "organization": {
+      if (
+        /\b(study|studying|student|university|college|school|class|course)\b/
+          .test(context)
+      ) {
+        return "my university";
+      }
 
-    case "location":
+      if (
+        /\b(work|working|job|employee|employer|salary|boss)\b/
+          .test(context)
+      ) {
+        return "my employer";
+      }
+
+      if (
+        /\b(hospital|doctor|patient|treated|clinic|medical)\b/
+          .test(context)
+      ) {
+        return "my healthcare provider";
+      }
+
+      return "my organization";
+    }
+
+    case "location": {
+      if (
+        /\b(city|live|living|town|restaurants|local)\b/
+          .test(context)
+      ) {
+        return "my city";
+      }
+
+      if (
+        /\b(country|nationality|abroad|international)\b/
+          .test(context)
+      ) {
+        return "my country";
+      }
+
       return "my location";
+    }
 
     case "email":
       return "my email address";
@@ -224,6 +266,33 @@ function createSemanticReplacement(
   }
 }
 
+function getTokenContext(
+  text,
+  token
+) {
+  const index = text.indexOf(token);
+
+  if (index === -1) {
+    return text;
+  }
+
+  const contextRadius = 80;
+
+  const start = Math.max(
+    0,
+    index - contextRadius
+  );
+
+  const end = Math.min(
+    text.length,
+    index + token.length + contextRadius
+  );
+
+  return text.slice(
+    start,
+    end
+  );
+}
 
 function createFictionalReplacement(
   privateItem
