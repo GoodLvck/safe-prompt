@@ -1,9 +1,11 @@
 import { detectSensitiveEntities } from "./detection/detector.js";
 import { tokenizePrompt } from "./privacy/tokenizer.js";
 import { safePromptState } from "./privacy/state.js";
-import { showWarning, removeExistingWarning } from "./ui/warningPanel.js";
+import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation } from "./ui/warningPanel.js";
 import { transformPrompt } from "./privacy/transformer.js";
 import { getTextFromElement, setTextToElement } from "./utils/dom.js";
+
+let isSafePromptUpdating = false;
 
 function isSupportedInput(element) {
   if (!element) return false;
@@ -42,6 +44,10 @@ function isSupportedInput(element) {
 }
 
 async function handlePromptInput(event) {
+  if (isSafePromptUpdating) {
+    return;
+  }
+
   const element = event.target;
 
   if (!isSupportedInput(element)) {
@@ -127,12 +133,29 @@ function handleManualProtect(manualDecisions) {
   safePromptState.report =
     transformation.report;
 
+  clearTimeout(typingTimer);
+
+  clearTimeout(typingTimer);
+
+  isSafePromptUpdating = true;
+
   setTextToElement(
     safePromptState.activeElement,
     safePromptState.protectedPrompt
   );
 
-  removeExistingWarning();
+  setTimeout(() => {
+    isSafePromptUpdating = false;
+  }, 0);
+
+  showProtectionConfirmation(
+    safePromptState.activeElement,
+    safePromptState,
+    {
+      onReport: handleReport,
+      onUndo: handleUndo
+    }
+  );
 }
 
 async function handleAutoProtect() {
@@ -164,20 +187,28 @@ async function handleAutoProtect() {
     safePromptState.report =
       transformation.report;
 
+    clearTimeout(typingTimer);
+
+    isSafePromptUpdating = true;
+
     setTextToElement(
       safePromptState.activeElement,
       safePromptState.protectedPrompt
     );
 
-    removeExistingWarning();
+    setTimeout(() => {
+      isSafePromptUpdating = false;
+    }, 0);
 
-    console.log(
-      "SafePrompt report:",
-      safePromptState.report
+    showProtectionConfirmation(
+      safePromptState.activeElement,
+      safePromptState,
+      {
+        onReport: handleReport,
+        onUndo: handleUndo
+      }
     );
-  }
-
-  catch (error) {
+  } catch (error) {
     console.error(
       "SafePrompt Auto Protect failed:",
       error
@@ -210,7 +241,12 @@ document.addEventListener(
   "input",
   (event) => {
 
-    // Ignore SafePrompt controls
+    // Ignore changes made by SafePrompt itself
+    if (isSafePromptUpdating) {
+      return;
+    }
+
+    // Ignore SafePrompt UI controls
     if (
       event.target.closest?.(
         "#safeprompt-warning"
@@ -229,3 +265,38 @@ document.addEventListener(
     );
   }
 );
+
+function handleUndo() {
+  if (
+    !safePromptState.activeElement ||
+    !safePromptState.originalPrompt
+  ) {
+    return;
+  }
+
+  clearTimeout(typingTimer);
+
+  isSafePromptUpdating = true;
+
+  setTextToElement(
+    safePromptState.activeElement,
+    safePromptState.originalPrompt
+  );
+
+  setTimeout(() => {
+    isSafePromptUpdating = false;
+  }, 0);
+
+  removeExistingWarning();
+}
+
+function handleReport() {
+  console.table(
+    safePromptState.report
+  );
+
+  console.log(
+    "Replacement map:",
+    safePromptState.replacementMap
+  );
+}

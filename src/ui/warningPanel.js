@@ -282,3 +282,87 @@ export function showManualReview(
       }
     );
 }
+
+export function showProtectionConfirmation(
+  element,
+  state,
+  {
+    onReport,
+    onUndo
+  }
+) {
+  removeExistingWarning();
+
+  const panel = document.createElement("div");
+  panel.id = "safeprompt-warning";
+
+  const changedCount =
+    state.report.filter(
+      item => item.action !== "KEEP"
+    ).length;
+
+  const keptCount =
+    state.report.filter(
+      item => item.action === "KEEP"
+    ).length;
+
+  panel.innerHTML = `
+    <div class="sp-header">
+      <div>
+        ✓ Prompt protected
+      </div>
+
+      <button id="sp-close-button">
+        ×
+      </button>
+    </div>
+
+    <div class="sp-confirmation">
+      <strong>${state.report.length}</strong>
+      private values analyzed
+
+      <div class="sp-confirmation-stats">
+        ${changedCount} protected ·
+        ${keptCount} kept
+      </div>
+    </div>
+
+    <div class="sp-actions">
+      <button id="sp-report-button">
+        Report
+      </button>
+
+      <button id="sp-undo-button">
+        Undo
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  positionWarning(
+    panel,
+    element
+  );
+
+  document
+    .getElementById("sp-close-button")
+    .addEventListener(
+      "click",
+      removeExistingWarning
+    );
+
+  document
+    .getElementById("sp-report-button")
+    .addEventListener(
+      "click",
+      onReport
+    );
+
+  document
+    .getElementById("sp-undo-button")
+    .addEventListener(
+      "click",
+      onUndo
+    );
+}
