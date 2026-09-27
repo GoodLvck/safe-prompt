@@ -507,7 +507,15 @@ export function showAnalyzingState(element) {
   positionWarning(panel, element);
 }
 
-export function showProtectionError(element, message, { onRetry, onClose }) {
+export function showProtectionError(
+  element,
+  message,
+  {
+    onRetry,
+    onReview,
+    onClose
+  }
+) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
@@ -529,20 +537,49 @@ export function showProtectionError(element, message, { onRetry, onClose }) {
     </div>
 
     <div class="sp-actions">
+
       <button
-  id="sp-error-retry"
-  class="sp-button-primary"
->
-  Retry
-</button>
+        id="sp-error-review"
+        class="sp-button-secondary"
+      >
+        Review manually
+      </button>
+
+      <button
+        id="sp-error-retry"
+        class="sp-button-primary"
+      >
+        Retry
+      </button>
+
     </div>
   `;
 
   document.body.appendChild(panel);
 
-  positionWarning(panel, element);
+  positionWarning(
+    panel,
+    element
+  );
 
-  document.getElementById("sp-error-retry").addEventListener("click", onRetry);
+  document
+    .getElementById("sp-error-review")
+    .addEventListener(
+      "click",
+      onReview
+    );
 
-  document.getElementById("sp-close-button").addEventListener("click", onClose);
+  document
+    .getElementById("sp-error-retry")
+    .addEventListener(
+      "click",
+      onRetry
+    );
+
+  document
+    .getElementById("sp-close-button")
+    .addEventListener(
+      "click",
+      onClose
+    );
 }

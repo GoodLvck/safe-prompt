@@ -42,22 +42,53 @@ function isSupportedInput(element) {
 
   return false;
 }
+
 function handleProtectionError(error) {
-  console.error("SafePrompt protection error:", error);
+  console.error(
+    "SafePrompt protection error:",
+    error
+  );
 
-  let message = "SafePrompt couldn't analyze this prompt.";
+  let message =
+    "SafePrompt couldn't analyze this prompt.";
 
-  if (error.message?.includes("429")) {
-    message = "AI rate limit reached. Try again later or use manual review.";
-  } else if (error.message?.toLowerCase().includes("network")) {
-    message = "Network error. Check your connection and try again.";
+  if (
+    error.message?.includes("429")
+  ) {
+    message =
+      "AI rate limit reached. You can retry later or review the detected information manually.";
   }
 
-  showProtectionError(safePromptState.activeElement, message, {
-    onRetry: handleAutoProtect,
+  else if (
+    error.message
+      ?.toLowerCase()
+      .includes("network")
+  ) {
+    message =
+      "Network error. Check your connection or review the detected information manually.";
+  }
 
-    onClose: removeExistingWarning,
-  });
+  showProtectionError(
+    safePromptState.activeElement,
+    message,
+    {
+      onRetry: handleAutoProtect,
+
+      onReview: () => {
+        showManualReview(
+          safePromptState.activeElement,
+          safePromptState,
+          {
+            onApplyManual:
+              handleManualProtect
+          }
+        );
+      },
+
+      onClose:
+        removeExistingWarning
+    }
+  );
 }
 
 async function handlePromptInput(event) {

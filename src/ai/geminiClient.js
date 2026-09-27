@@ -3,12 +3,6 @@ import { GEMINI_API_KEY } from "../config.js";
 
 const USE_MOCK_AI = false;
 
-console.log(
-  USE_MOCK_AI
-    ? "SafePrompt running in MOCK mode"
-    : "SafePrompt running with Gemini",
-);
-
 const ai = new GoogleGenAI({
   apiKey: GEMINI_API_KEY,
 });
@@ -204,15 +198,8 @@ function validateDecisions(tokenizedPrompt, decisions) {
 
 export async function analyzeTokenizedPrompt(tokenizedPrompt) {
   if (USE_MOCK_AI) {
-    console.log("SafePrompt MOCK AI enabled");
-
-    console.log("Tokenized prompt:", tokenizedPrompt);
-
     return mockAnalysis(tokenizedPrompt);
   }
-
-  // Real Gemini calls happen here.
-  console.log("Sent to Gemini:", tokenizedPrompt);
 
   const interaction = await ai.interactions.create({
     model: "gemini-3.8-flash",
