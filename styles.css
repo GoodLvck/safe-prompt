@@ -212,3 +212,15 @@
 .sp-reference-original {
   opacity: 0.75;
 }
+
+.sp-analyzing {
+  padding: 16px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.sp-error-message {
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}

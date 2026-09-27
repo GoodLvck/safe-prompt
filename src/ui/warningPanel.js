@@ -549,3 +549,88 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+export function showAnalyzingState(
+  element
+) {
+  removeExistingWarning();
+
+  const panel = document.createElement("div");
+  panel.id = "safeprompt-warning";
+
+  panel.innerHTML = `
+    <div class="sp-header">
+      <div>
+        🔒 SafePrompt
+      </div>
+    </div>
+
+    <div class="sp-analyzing">
+      Analyzing protected prompt...
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  positionWarning(
+    panel,
+    element
+  );
+}
+
+export function showProtectionError(
+  element,
+  message,
+  {
+    onRetry,
+    onClose
+  }
+) {
+  removeExistingWarning();
+
+  const panel = document.createElement("div");
+  panel.id = "safeprompt-warning";
+
+  panel.innerHTML = `
+    <div class="sp-header">
+      <div>
+        SafePrompt couldn't finish
+      </div>
+
+      <button id="sp-close-button">
+        ×
+      </button>
+    </div>
+
+    <div class="sp-error-message">
+      ${escapeHtml(message)}
+    </div>
+
+    <div class="sp-actions">
+      <button id="sp-error-retry">
+        Retry
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  positionWarning(
+    panel,
+    element
+  );
+
+  document
+    .getElementById("sp-error-retry")
+    .addEventListener(
+      "click",
+      onRetry
+    );
+
+  document
+    .getElementById("sp-close-button")
+    .addEventListener(
+      "click",
+      onClose
+    );
+}

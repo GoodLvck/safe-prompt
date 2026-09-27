@@ -1,11 +1,12 @@
 import { detectSensitiveEntities } from "./detection/detector.js";
 import { tokenizePrompt } from "./privacy/tokenizer.js";
 import { safePromptState } from "./privacy/state.js";
-import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation, showProtectionReport } from "./ui/warningPanel.js";
+import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation, showProtectionReport, showAnalyzingState, showProtectionError } from "./ui/warningPanel.js";
 import { transformPrompt } from "./privacy/transformer.js";
 import { getTextFromElement, setTextToElement } from "./utils/dom.js";
 
 let isSafePromptUpdating = false;
+let isAutoProtectRunning = false;
 
 function isSupportedInput(element) {
   if (!element) return false;
@@ -41,6 +42,40 @@ function isSupportedInput(element) {
   }
 
   return false;
+}
+function handleProtectionError(error) {
+  console.error(
+    "SafePrompt protection error:",
+    error
+  );
+
+  let message =
+    "SafePrompt couldn't analyze this prompt.";
+
+  if (
+    error.message?.includes("429")
+  ) {
+    message =
+      "AI rate limit reached. Try again later or use manual review.";
+  }
+
+  else if (
+    error.message?.toLowerCase()
+      .includes("network")
+  ) {
+    message =
+      "Network error. Check your connection and try again.";
+  }
+
+  showProtectionError(
+    safePromptState.activeElement,
+    message,
+    {
+      onRetry: handleAutoProtect,
+
+      onClose: removeExistingWarning
+    }
+  );
 }
 
 async function handlePromptInput(event) {
@@ -159,7 +194,17 @@ function handleManualProtect(manualDecisions) {
 }
 
 async function handleAutoProtect() {
+  if (isAutoProtectRunning) {
+    return;
+  }
+
+  isAutoProtectRunning = true;
+
   try {
+    showAnalyzingState(
+      safePromptState.activeElement
+    );
+
     const response =
       await requestPrivacyAnalysis(
         safePromptState.tokenizedPrompt
@@ -208,11 +253,14 @@ async function handleAutoProtect() {
         onUndo: handleUndo
       }
     );
-  } catch (error) {
-    console.error(
-      "SafePrompt Auto Protect failed:",
-      error
-    );
+  }
+
+  catch (error) {
+    handleProtectionError(error);
+  }
+
+  finally {
+    isAutoProtectRunning = false;
   }
 }
 
