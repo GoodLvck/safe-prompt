@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { GEMINI_API_KEY } from "../config.js";
 
-const USE_MOCK_AI = true;
+const USE_MOCK_AI = false;
 
 console.log(
   USE_MOCK_AI
@@ -70,7 +70,7 @@ function buildAnalysisPrompt(tokenizedPrompt) {
   return `
 You are the privacy decision engine for SafePrompt.
 
-The user's private values have already been replaced locally
+The user's private values have already been detected and replaced locally
 with placeholders such as:
 
 [PERSON_1]
@@ -79,51 +79,127 @@ with placeholders such as:
 [PHONE_1]
 [LOCATION_1]
 [MONEY_1]
+[SSN_1]
+[CARD_1]
 
-You never know the original values.
+You never know the original private values.
 
-For EVERY placeholder in the prompt choose exactly one action:
+Your task is to decide, for EVERY placeholder in the prompt, how much
+information must be preserved in order to fulfill the user's actual request
+without unnecessarily exposing personal information.
+
+Choose exactly one action for each placeholder:
 
 KEEP
-Use this only when the exact original identity or value is
-required to correctly fulfill the user's request.
+Use KEEP only when the exact original identity or exact original value is
+necessary to answer the user's request correctly.
 
-Example:
+If replacing the real value with a different value would materially change
+the answer, use KEEP.
+
+Examples:
 "What reviews does [ORG_1] have?"
-The organization itself is the subject of the question,
-so its real identity must be preserved.
+→ KEEP [ORG_1]
+
+"Compare tuition at [ORG_1] and [ORG_2]."
+→ KEEP both organizations
+
+"What are the best restaurants in [LOCATION_1]?"
+→ KEEP [LOCATION_1]
+
 
 REPLACE
-Use this when the role, category or relationship matters,
-but the exact identity does not.
+Use REPLACE only when the user's requested output actually needs some value
+of this type to remain present, but the real identity or value is not needed.
 
-Example:
-"I study at [ORG_1]. Write an email to my professor."
-The exact university is unnecessary. It could become
-"my university" or a fictional university.
+Use "semantic" when the role or category is enough.
+
+Examples:
+"I study at [ORG_1]. Help me write an email asking for an extension."
+→ REPLACE [ORG_1] with replacementType "semantic"
+
+"I work at [ORG_1]. Help me write a generic request for a promotion."
+→ REPLACE [ORG_1] with replacementType "semantic"
+
+Use "fictional" when the requested output needs a concrete name, address,
+organization, email, phone number, or other explicit value, but it does not
+need to be the real one.
+
+Examples:
+"Please include [EMAIL_1] in the sample email signature."
+→ REPLACE [EMAIL_1] with replacementType "fictional"
+
+"Write the sample letter and sign it as [PERSON_1]."
+→ REPLACE [PERSON_1] with replacementType "fictional"
+
+"Create a sample letter that mentions [ORG_1] by name."
+→ REPLACE [ORG_1] with replacementType "fictional"
+
+Important:
+Do NOT use REPLACE merely because that type of information could normally
+appear in the generated document.
+
+For example:
+"My email is [EMAIL_1]. Help me write a resignation letter."
+→ REMOVE [EMAIL_1]
+
+The user did not ask for an email address to appear in the resignation letter,
+so replacing it with a fictional email would preserve unnecessary information.
+
 
 GENERALIZE
-Use this when the information matters but exact precision
-is unnecessary.
+Use GENERALIZE when the information is relevant to the user's request, but
+the exact precision is unnecessary.
 
-Example:
+Examples:
 "I earn [MONEY_1]. Help me negotiate a raise."
-The approximate amount may be enough.
+→ GENERALIZE [MONEY_1]
+
+The salary matters, but an approximate amount may preserve the intent without
+sharing the exact number.
+
 
 REMOVE
-Use this when the information has no meaningful effect
-on fulfilling the request.
+Use REMOVE when the information is not necessary to fulfill the user's
+explicit request.
 
-Important rules:
+If removing the value entirely would still allow an equally useful answer,
+prefer REMOVE over REPLACE.
 
-- Preserve the user's objective.
-- Prefer privacy when exact information is unnecessary.
-- Never attempt to infer or reconstruct original values.
+Examples:
+"My email is [EMAIL_1]. Help me write a resignation letter."
+→ REMOVE [EMAIL_1]
+
+"My phone number is [PHONE_1]. Help me write a complaint."
+→ REMOVE [PHONE_1]
+
+"My name is [PERSON_1]. Help me negotiate a raise."
+→ REMOVE [PERSON_1], unless the requested output explicitly needs a name.
+
+
+PRIVACY PRIORITY
+
+When more than one action could work, prefer the action that exposes the least
+personal information while preserving the user's objective:
+
+1. REMOVE if the information is unnecessary.
+2. GENERALIZE if approximate information is sufficient.
+3. REPLACE if some value or role must remain, but the real value is unnecessary.
+4. KEEP only when the exact real value is genuinely required.
+
+Additional rules:
+
+- Preserve the user's original objective.
 - Analyze every placeholder exactly once.
-- KEEP is allowed when changing the value would change
-  the answer.
-- Return decisions only for placeholders that actually
-  appear in the prompt.
+- Never attempt to infer, reconstruct, or guess the original private values.
+- Never assume a value is needed merely because it commonly appears in that
+  kind of document.
+- Base the decision on what the user explicitly needs for the requested task.
+- If a token is itself the subject of a factual question, KEEP it.
+- If the role matters but the identity does not, REPLACE it.
+- If only approximate magnitude matters, GENERALIZE it.
+- If it has no meaningful effect on the answer, REMOVE it.
+- Return decisions only for placeholders that actually appear in the prompt.
 
 TOKENIZED PROMPT:
 
@@ -173,6 +249,10 @@ export async function analyzeTokenizedPrompt(
   }
 
   // Aquí queda tu llamada REAL a Gemini
+  console.log(
+    "Sent to Gemini:",
+    tokenizedPrompt
+  );
 
   const interaction =
     await ai.interactions.create({

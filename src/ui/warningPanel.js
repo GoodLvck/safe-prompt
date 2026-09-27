@@ -79,12 +79,18 @@ export function showWarning(
     </div>
 
     <div class="sp-actions">
-      <button id="sp-auto-protect">
-        Auto Protect
+      <button
+        id="sp-review-manually"
+        class="sp-button-secondary"
+      >
+        Review manually
       </button>
 
-      <button id="sp-review-manually">
-        Review manually
+      <button
+        id="sp-auto-protect"
+        class="sp-button-primary"
+      >
+        Auto protect
       </button>
     </div>
   `;
@@ -211,11 +217,17 @@ export function showManualReview(
     </div>
 
     <div class="sp-actions">
-      <button id="sp-cancel-review">
+      <button
+        id="sp-cancel-review"
+        class="sp-button-secondary"
+      >
         Cancel
       </button>
 
-      <button id="sp-apply-review">
+      <button
+        id="sp-apply-review"
+        class="sp-button-primary"
+      >
         Apply changes
       </button>
     </div>
@@ -296,6 +308,12 @@ export function showProtectionConfirmation(
     state.report.filter(
       item => item.action === "KEEP"
     ).length;
+  const analyzedCount = state.report.length;
+
+  const analyzedLabel =
+    analyzedCount === 1
+      ? "private value analyzed"
+      : "private values analyzed";
 
   panel.innerHTML = `
     <div class="sp-header">
@@ -309,8 +327,8 @@ export function showProtectionConfirmation(
     </div>
 
     <div class="sp-confirmation">
-      <strong>${state.report.length}</strong>
-      private values analyzed
+      <strong>${analyzedCount}</strong>
+      ${analyzedLabel}
 
       <div class="sp-confirmation-stats">
         ${changedCount} protected ·
@@ -319,11 +337,17 @@ export function showProtectionConfirmation(
     </div>
 
     <div class="sp-actions">
-      <button id="sp-report-button">
+      <button
+        id="sp-report-button"
+        class="sp-button-primary"
+      >
         Report
       </button>
 
-      <button id="sp-undo-button">
+      <button
+        id="sp-undo-button"
+        class="sp-button-secondary"
+      >
         Undo
       </button>
     </div>
@@ -474,6 +498,13 @@ export function showProtectionReport(
       `
       : "";
 
+      const reportCount = state.report.length;
+
+      const reportLabel =
+        reportCount === 1
+          ? "private value analyzed"
+          : "private values analyzed";
+
   panel.innerHTML = `
     <div class="sp-header">
       <div>
@@ -486,8 +517,8 @@ export function showProtectionReport(
     </div>
 
     <div class="sp-report-summary">
-      ${state.report.length} private values analyzed
-    </div>
+  ${reportCount} ${reportLabel}
+</div>
 
     <div class="sp-report-items">
       ${reportItemsHtml}
@@ -497,13 +528,19 @@ export function showProtectionReport(
 
     <div class="sp-actions">
 
-      <button id="sp-report-back">
-        Back
-      </button>
+      <button
+  id="sp-report-back"
+  class="sp-button-secondary"
+>
+  Back
+</button>
 
-      <button id="sp-report-undo">
-        Undo
-      </button>
+<button
+  id="sp-report-undo"
+  class="sp-button-secondary"
+>
+  Undo
+</button>
 
     </div>
   `;
@@ -607,9 +644,12 @@ export function showProtectionError(
     </div>
 
     <div class="sp-actions">
-      <button id="sp-error-retry">
-        Retry
-      </button>
+      <button
+  id="sp-error-retry"
+  class="sp-button-primary"
+>
+  Retry
+</button>
     </div>
   `;
 
