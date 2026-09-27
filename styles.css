@@ -183,3 +183,32 @@
 
   opacity: 0.7;
 }
+
+.sp-reference-section {
+  padding: 14px;
+  border-top: 1px solid #eee;
+}
+
+.sp-reference-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.sp-reference-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 0;
+
+  font-size: 12px;
+}
+
+.sp-reference-fake {
+  font-weight: 600;
+}
+
+.sp-reference-original {
+  opacity: 0.75;
+}

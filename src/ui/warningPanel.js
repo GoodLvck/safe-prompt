@@ -434,6 +434,46 @@ export function showProtectionReport(
     })
     .join("");
 
+  const replacementEntries =
+    Object.values(
+      state.replacementMap || {}
+    );
+
+  const replacementReferenceHtml =
+    replacementEntries.length > 0
+      ? `
+        <div class="sp-reference-section">
+          <div class="sp-reference-title">
+            Replacement reference
+          </div>
+
+          ${replacementEntries
+            .map(
+              (item) => `
+                <div class="sp-reference-item">
+
+                  <span class="sp-reference-fake">
+                    ${escapeHtml(
+                      item.replacementValue
+                    )}
+                  </span>
+
+                  <span>→</span>
+
+                  <span class="sp-reference-original">
+                    ${escapeHtml(
+                      item.originalValue
+                    )}
+                  </span>
+
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      `
+      : "";
+
   panel.innerHTML = `
     <div class="sp-header">
       <div>
@@ -452,6 +492,8 @@ export function showProtectionReport(
     <div class="sp-report-items">
       ${reportItemsHtml}
     </div>
+
+    ${replacementReferenceHtml}
 
     <div class="sp-actions">
 
