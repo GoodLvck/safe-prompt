@@ -1,14 +1,5 @@
 import { setTextToElement } from "../utils/dom.js";
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 export function removeExistingWarning() {
   const existing =
     document.getElementById("safeprompt-warning");
@@ -365,4 +356,154 @@ export function showProtectionConfirmation(
       "click",
       onUndo
     );
+}
+
+export function showProtectionReport(
+  element,
+  state,
+  {
+    onBack,
+    onUndo
+  }
+) {
+  removeExistingWarning();
+
+  const panel = document.createElement("div");
+  panel.id = "safeprompt-warning";
+
+  const reportItemsHtml = state.report
+    .map((item) => {
+      let replacementHtml = "";
+
+      if (item.action === "REMOVE") {
+        replacementHtml = `
+          <div class="sp-report-change">
+            <span>${escapeHtml(item.originalValue)}</span>
+            <span>→</span>
+            <strong>Removed</strong>
+          </div>
+        `;
+      }
+
+      else if (
+        item.action === "REPLACE" ||
+        item.action === "GENERALIZE"
+      ) {
+        replacementHtml = `
+          <div class="sp-report-change">
+            <span>${escapeHtml(item.originalValue)}</span>
+            <span>→</span>
+            <strong>
+              ${escapeHtml(item.replacementValue)}
+            </strong>
+          </div>
+        `;
+      }
+
+      else {
+        replacementHtml = `
+          <div class="sp-report-change">
+            <span>${escapeHtml(item.originalValue)}</span>
+            <span>→</span>
+            <strong>Kept</strong>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="sp-report-item">
+
+          <div class="sp-report-top">
+            <span class="sp-report-type">
+              ${escapeHtml(item.token)}
+            </span>
+
+            <span class="sp-report-action sp-action-${item.action.toLowerCase()}">
+              ${item.action}
+            </span>
+          </div>
+
+          ${replacementHtml}
+
+          <div class="sp-report-reason">
+            ${escapeHtml(item.reason || "No reason provided.")}
+          </div>
+
+        </div>
+      `;
+    })
+    .join("");
+
+  panel.innerHTML = `
+    <div class="sp-header">
+      <div>
+        🔒 Protection Report
+      </div>
+
+      <button id="sp-close-button">
+        ×
+      </button>
+    </div>
+
+    <div class="sp-report-summary">
+      ${state.report.length} private values analyzed
+    </div>
+
+    <div class="sp-report-items">
+      ${reportItemsHtml}
+    </div>
+
+    <div class="sp-actions">
+
+      <button id="sp-report-back">
+        Back
+      </button>
+
+      <button id="sp-report-undo">
+        Undo
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  positionWarning(
+    panel,
+    element
+  );
+
+  document
+    .getElementById("sp-close-button")
+    .addEventListener(
+      "click",
+      removeExistingWarning
+    );
+
+  document
+    .getElementById("sp-report-back")
+    .addEventListener(
+      "click",
+      onBack
+    );
+
+  document
+    .getElementById("sp-report-undo")
+    .addEventListener(
+      "click",
+      onUndo
+    );
+}
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

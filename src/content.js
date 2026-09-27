@@ -1,7 +1,7 @@
 import { detectSensitiveEntities } from "./detection/detector.js";
 import { tokenizePrompt } from "./privacy/tokenizer.js";
 import { safePromptState } from "./privacy/state.js";
-import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation } from "./ui/warningPanel.js";
+import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation, showProtectionReport } from "./ui/warningPanel.js";
 import { transformPrompt } from "./privacy/transformer.js";
 import { getTextFromElement, setTextToElement } from "./utils/dom.js";
 
@@ -291,12 +291,22 @@ function handleUndo() {
 }
 
 function handleReport() {
-  console.table(
-    safePromptState.report
-  );
+  showProtectionReport(
+    safePromptState.activeElement,
+    safePromptState,
+    {
+      onBack: () => {
+        showProtectionConfirmation(
+          safePromptState.activeElement,
+          safePromptState,
+          {
+            onReport: handleReport,
+            onUndo: handleUndo
+          }
+        );
+      },
 
-  console.log(
-    "Replacement map:",
-    safePromptState.replacementMap
+      onUndo: handleUndo
+    }
   );
 }
