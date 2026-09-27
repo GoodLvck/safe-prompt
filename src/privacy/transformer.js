@@ -361,6 +361,10 @@ function removePrivateClause(sentence, token) {
   const patterns = [
     // I work at [ORG_1] and manage a small team.
     {
+      regex: new RegExp(`^My\\s+name\\s+is\\s+${escapedToken}\\s+and\\s+`, "i"),
+      replacement: ""
+    },
+    {
       regex: new RegExp(`^I\\s+work\\s+at\\s+${escapedToken}\\s+and\\s+`, "i"),
       replacement: "I ",
     },

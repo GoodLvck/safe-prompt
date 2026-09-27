@@ -8,12 +8,83 @@ export function removeExistingWarning() {
   }
 }
 
-export function positionWarning(warning, element) {
-  const rect = element.getBoundingClientRect();
+function positionWarning(
+  warning,
+  element
+) {
+  const rect =
+    element.getBoundingClientRect();
 
-  warning.style.top = `${window.scrollY + rect.top - warning.offsetHeight - 12}px`;
+  const margin = 12;
 
-  warning.style.left = `${window.scrollX + rect.left}px`;
+  const warningWidth =
+    warning.offsetWidth;
+
+  const warningHeight =
+    warning.offsetHeight;
+
+  const viewportWidth =
+    window.innerWidth;
+
+  const viewportHeight =
+    window.innerHeight;
+
+  // Try placing above the input first
+  let top =
+    rect.top -
+    warningHeight -
+    margin;
+
+  // If there is not enough room above,
+  // place it below the input
+  if (top < margin) {
+    top =
+      rect.bottom +
+      margin;
+  }
+
+  // If it would go below the viewport,
+  // clamp it inside the screen
+  if (
+    top + warningHeight >
+    viewportHeight - margin
+  ) {
+    top =
+      Math.max(
+        margin,
+        viewportHeight -
+          warningHeight -
+          margin
+      );
+  }
+
+  let left =
+    rect.left;
+
+  // Prevent overflow on the right
+  if (
+    left + warningWidth >
+    viewportWidth - margin
+  ) {
+    left =
+      viewportWidth -
+      warningWidth -
+      margin;
+  }
+
+  // Prevent overflow on the left
+  if (left < margin) {
+    left = margin;
+  }
+
+  warning.style.position =
+    "fixed";
+
+  warning.style.top =
+    `${top}px`;
+
+  warning.style.left =
+    `${left}px`;
 }
 
 export function showWarning(element, state, { onAutoProtect, onReview }) {
