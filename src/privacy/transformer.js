@@ -186,7 +186,9 @@ function createReplacement(
     decision.replacementType === "fictional"
   ) {
     return createFictionalReplacement(
-      privateItem
+      privateItem,
+      text,
+      token
     );
   }
 
@@ -295,21 +297,65 @@ function getTokenContext(
 }
 
 function createFictionalReplacement(
-  privateItem
+  privateItem,
+  text,
+  token
 ) {
+  const context = getTokenContext(
+    text,
+    token
+  ).toLowerCase();
+
   switch (privateItem.type) {
 
     case "person":
-      return "Jordan";
+      return "Jordan Lee";
 
-    case "organization":
-      return "Example University";
+    case "organization": {
+      if (
+        /\b(study|student|university|college|school|class|course)\b/
+          .test(context)
+      ) {
+        return "Northbridge University";
+      }
 
-    case "location":
+      if (
+        /\b(work|job|employee|employer|company|salary|boss)\b/
+          .test(context)
+      ) {
+        return "BrightPath Technologies";
+      }
+
+      if (
+        /\b(hospital|doctor|patient|clinic|medical|treated)\b/
+          .test(context)
+      ) {
+        return "Riverside Medical Center";
+      }
+
+      if (
+        /\b(bank|account|loan|mortgage|finance)\b/
+          .test(context)
+      ) {
+        return "Summit Bank";
+      }
+
+      return "Example Organization";
+    }
+
+    case "location": {
+      if (
+        /\b(country|nationality|abroad|international)\b/
+          .test(context)
+      ) {
+        return "Exampleland";
+      }
+
       return "Springfield";
+    }
 
     case "email":
-      return "jordan@example.com";
+      return "jordan.lee@example.com";
 
     case "phone":
       return "555-0100";

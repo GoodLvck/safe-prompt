@@ -224,7 +224,6 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // ORGANIZATIONS
       // -----------------------------
-
       if (token.startsWith("[ORG_")) {
         const exactOrgIsSubject =
           lowerPrompt.includes(
@@ -262,19 +261,57 @@ function mockAnalysis(tokenizedPrompt) {
           };
         }
 
+        const organizationNameNeeded =
+          lowerPrompt.includes(
+            "mention the university by name"
+          ) ||
+          lowerPrompt.includes(
+            "mention the company by name"
+          ) ||
+          lowerPrompt.includes(
+            "mention the organization by name"
+          ) ||
+          lowerPrompt.includes(
+            "include the university name"
+          ) ||
+          lowerPrompt.includes(
+            "include the company name"
+          ) ||
+          lowerPrompt.includes(
+            "include the organization name"
+          ) ||
+          lowerPrompt.includes(
+            "use a university name"
+          ) ||
+          lowerPrompt.includes(
+            "use a company name"
+          ) ||
+          lowerPrompt.includes(
+            "use an organization name"
+          );
+
+        if (organizationNameNeeded) {
+          return {
+            token,
+            action: "REPLACE",
+            replacementType: "fictional",
+            reason:
+              "Mock decision: a named organization is useful in the output, but the real identity is unnecessary."
+          };
+        }
+
         return {
           token,
           action: "REPLACE",
           replacementType: "semantic",
           reason:
-            "Mock decision: the organization context matters, but the exact identity is not necessary."
+            "Mock decision: the organization role matters, but the exact identity is unnecessary."
         };
       }
 
       // -----------------------------
       // PERSONS
       // -----------------------------
-
       if (token.startsWith("[PERSON_")) {
         const exactPersonIsSubject =
           lowerPrompt.includes(
@@ -297,19 +334,42 @@ function mockAnalysis(tokenizedPrompt) {
           };
         }
 
+        const personNameNeeded =
+          lowerPrompt.includes(
+            "include my name"
+          ) ||
+          lowerPrompt.includes(
+            "sign it as"
+          ) ||
+          lowerPrompt.includes(
+            "mention my name"
+          ) ||
+          lowerPrompt.includes(
+            "use my name"
+          );
+
+        if (personNameNeeded) {
+          return {
+            token,
+            action: "REPLACE",
+            replacementType: "fictional",
+            reason:
+              "Mock decision: a personal name is useful in the output, but the real identity is unnecessary."
+          };
+        }
+
         return {
           token,
           action: "REPLACE",
           replacementType: "fictional",
           reason:
-            "Mock decision: the exact name is not necessary."
+            "Mock decision: the exact identity is not necessary."
         };
       }
 
       // -----------------------------
       // LOCATIONS
       // -----------------------------
-
       if (token.startsWith("[LOCATION_")) {
         const exactLocationIsSubject =
           lowerPrompt.includes(
@@ -347,7 +407,6 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // MONEY
       // -----------------------------
-
       if (token.startsWith("[MONEY_")) {
         return {
           token,
@@ -361,7 +420,6 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // EMAIL
       // -----------------------------
-
       if (token.startsWith("[EMAIL_")) {
         const exactEmailNeeded =
           lowerPrompt.includes(
@@ -396,7 +454,6 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // PHONE
       // -----------------------------
-
       if (token.startsWith("[PHONE_")) {
         const phoneNeeded =
           lowerPrompt.includes(
@@ -431,21 +488,19 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // SSN
       // -----------------------------
-
       if (token.startsWith("[SSN_")) {
         return {
           token,
           action: "REMOVE",
           replacementType: null,
           reason:
-            "Mock decision: the Social Security Number should not be shared because it is not necessary."
+            "Mock decision: the Social Security Number is unnecessary and highly sensitive."
         };
       }
 
       // -----------------------------
       // CREDIT CARD
       // -----------------------------
-
       if (token.startsWith("[CARD_")) {
         return {
           token,
@@ -459,7 +514,6 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       // FALLBACK
       // -----------------------------
-
       return {
         token,
         action: "KEEP",
