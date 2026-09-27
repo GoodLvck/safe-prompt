@@ -6,10 +6,7 @@ export function getTextFromElement(element) {
   return element.value;
 }
 
-export function setTextToElement(
-  element,
-  newText
-) {
+export function setTextToElement(element, newText) {
   if (element.isContentEditable) {
     element.innerText = newText;
   } else {
@@ -20,8 +17,8 @@ export function setTextToElement(
     new InputEvent("input", {
       bubbles: true,
       inputType: "insertText",
-      data: newText
-    })
+      data: newText,
+    }),
   );
 
   element.focus();

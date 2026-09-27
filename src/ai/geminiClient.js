@@ -6,11 +6,11 @@ const USE_MOCK_AI = false;
 console.log(
   USE_MOCK_AI
     ? "SafePrompt running in MOCK mode"
-    : "SafePrompt running with Gemini"
+    : "SafePrompt running with Gemini",
 );
 
 const ai = new GoogleGenAI({
-  apiKey: GEMINI_API_KEY
+  apiKey: GEMINI_API_KEY,
 });
 
 const decisionSchema = {
@@ -25,45 +25,30 @@ const decisionSchema = {
 
         properties: {
           token: {
-            type: "string"
+            type: "string",
           },
 
           action: {
             type: "string",
-            enum: [
-              "KEEP",
-              "REPLACE",
-              "GENERALIZE",
-              "REMOVE"
-            ]
+            enum: ["KEEP", "REPLACE", "GENERALIZE", "REMOVE"],
           },
 
           replacementType: {
             type: ["string", "null"],
-            enum: [
-              "semantic",
-              "fictional",
-              "generalized",
-              null
-            ]
+            enum: ["semantic", "fictional", "generalized", null],
           },
 
           reason: {
-            type: "string"
-          }
+            type: "string",
+          },
         },
 
-        required: [
-          "token",
-          "action",
-          "replacementType",
-          "reason"
-        ]
-      }
-    }
+        required: ["token", "action", "replacementType", "reason"],
+      },
+    },
   },
 
-  required: ["decisions"]
+  required: ["decisions"],
 };
 
 function buildAnalysisPrompt(tokenizedPrompt) {
@@ -207,91 +192,51 @@ ${tokenizedPrompt}
 `;
 }
 
-function validateDecisions(
-  tokenizedPrompt,
-  decisions
-) {
-  const tokens =
-    tokenizedPrompt.match(
-      /\[[A-Z]+_\d+\]/g
-    ) || [];
+function validateDecisions(tokenizedPrompt, decisions) {
+  const tokens = tokenizedPrompt.match(/\[[A-Z]+_\d+\]/g) || [];
 
-  const uniqueTokens =
-    [...new Set(tokens)];
+  const uniqueTokens = [...new Set(tokens)];
 
-  const returnedTokens =
-    decisions.map(
-      decision => decision.token
-    );
+  const returnedTokens = decisions.map((decision) => decision.token);
 
-  return uniqueTokens.every(
-    token =>
-      returnedTokens.includes(token)
-  );
+  return uniqueTokens.every((token) => returnedTokens.includes(token));
 }
 
-export async function analyzeTokenizedPrompt(
-  tokenizedPrompt
-) {
+export async function analyzeTokenizedPrompt(tokenizedPrompt) {
   if (USE_MOCK_AI) {
-    console.log(
-      "SafePrompt MOCK AI enabled"
-    );
+    console.log("SafePrompt MOCK AI enabled");
 
-    console.log(
-      "Tokenized prompt:",
-      tokenizedPrompt
-    );
+    console.log("Tokenized prompt:", tokenizedPrompt);
 
-    return mockAnalysis(
-      tokenizedPrompt
-    );
+    return mockAnalysis(tokenizedPrompt);
   }
 
-  // Aquí queda tu llamada REAL a Gemini
-  console.log(
-    "Sent to Gemini:",
-    tokenizedPrompt
-  );
+  // Real Gemini calls happen here.
+  console.log("Sent to Gemini:", tokenizedPrompt);
 
-  const interaction =
-    await ai.interactions.create({
-      model: "gemini-3.8-flash",
+  const interaction = await ai.interactions.create({
+    model: "gemini-3.8-flash",
 
-      input:
-        buildAnalysisPrompt(
-          tokenizedPrompt
-        ),
+    input: buildAnalysisPrompt(tokenizedPrompt),
 
-      response_format: {
-        type: "text",
-        mime_type: "application/json",
-        schema: decisionSchema
-      }
-    });
+    response_format: {
+      type: "text",
+      mime_type: "application/json",
+      schema: decisionSchema,
+    },
+  });
 
-  const result =
-    JSON.parse(
-      interaction.output_text
-    );
+  const result = JSON.parse(interaction.output_text);
 
-  if (
-    !validateDecisions(
-      tokenizedPrompt,
-      result.decisions
-    )
-  ) {
-    throw new Error(
-      "Gemini did not analyze every token."
-    );
+  if (!validateDecisions(tokenizedPrompt, result.decisions)) {
+    throw new Error("Gemini did not analyze every token.");
   }
 
   return result;
 }
 
 function mockAnalysis(tokenizedPrompt) {
-  const tokens =
-    tokenizedPrompt.match(/\[[A-Z]+_\d+\]/g) || [];
+  const tokens = tokenizedPrompt.match(/\[[A-Z]+_\d+\]/g) || [];
 
   const uniqueTokens = [...new Set(tokens)];
 
@@ -306,30 +251,14 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       if (token.startsWith("[ORG_")) {
         const exactOrgIsSubject =
-          lowerPrompt.includes(
-            `reviews does ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `reviews of ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `tell me about ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `information about ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `where is ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `compare ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `tuition at ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `price of ${lowerToken}`
-          );
+          lowerPrompt.includes(`reviews does ${lowerToken}`) ||
+          lowerPrompt.includes(`reviews of ${lowerToken}`) ||
+          lowerPrompt.includes(`tell me about ${lowerToken}`) ||
+          lowerPrompt.includes(`information about ${lowerToken}`) ||
+          lowerPrompt.includes(`where is ${lowerToken}`) ||
+          lowerPrompt.includes(`compare ${lowerToken}`) ||
+          lowerPrompt.includes(`tuition at ${lowerToken}`) ||
+          lowerPrompt.includes(`price of ${lowerToken}`);
 
         if (exactOrgIsSubject) {
           return {
@@ -337,38 +266,20 @@ function mockAnalysis(tokenizedPrompt) {
             action: "KEEP",
             replacementType: null,
             reason:
-              "Mock decision: the exact organization is the subject of the request."
+              "Mock decision: the exact organization is the subject of the request.",
           };
         }
 
         const organizationNameNeeded =
-          lowerPrompt.includes(
-            "mention the university by name"
-          ) ||
-          lowerPrompt.includes(
-            "mention the company by name"
-          ) ||
-          lowerPrompt.includes(
-            "mention the organization by name"
-          ) ||
-          lowerPrompt.includes(
-            "include the university name"
-          ) ||
-          lowerPrompt.includes(
-            "include the company name"
-          ) ||
-          lowerPrompt.includes(
-            "include the organization name"
-          ) ||
-          lowerPrompt.includes(
-            "use a university name"
-          ) ||
-          lowerPrompt.includes(
-            "use a company name"
-          ) ||
-          lowerPrompt.includes(
-            "use an organization name"
-          );
+          lowerPrompt.includes("mention the university by name") ||
+          lowerPrompt.includes("mention the company by name") ||
+          lowerPrompt.includes("mention the organization by name") ||
+          lowerPrompt.includes("include the university name") ||
+          lowerPrompt.includes("include the company name") ||
+          lowerPrompt.includes("include the organization name") ||
+          lowerPrompt.includes("use a university name") ||
+          lowerPrompt.includes("use a company name") ||
+          lowerPrompt.includes("use an organization name");
 
         if (organizationNameNeeded) {
           return {
@@ -376,7 +287,7 @@ function mockAnalysis(tokenizedPrompt) {
             action: "REPLACE",
             replacementType: "fictional",
             reason:
-              "Mock decision: a named organization is useful in the output, but the real identity is unnecessary."
+              "Mock decision: a named organization is useful in the output, but the real identity is unnecessary.",
           };
         }
 
@@ -385,7 +296,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "REPLACE",
           replacementType: "semantic",
           reason:
-            "Mock decision: the organization role matters, but the exact identity is unnecessary."
+            "Mock decision: the organization role matters, but the exact identity is unnecessary.",
         };
       }
 
@@ -394,15 +305,9 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       if (token.startsWith("[PERSON_")) {
         const exactPersonIsSubject =
-          lowerPrompt.includes(
-            `who is ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `tell me about ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `information about ${lowerToken}`
-          );
+          lowerPrompt.includes(`who is ${lowerToken}`) ||
+          lowerPrompt.includes(`tell me about ${lowerToken}`) ||
+          lowerPrompt.includes(`information about ${lowerToken}`);
 
         if (exactPersonIsSubject) {
           return {
@@ -410,23 +315,15 @@ function mockAnalysis(tokenizedPrompt) {
             action: "KEEP",
             replacementType: null,
             reason:
-              "Mock decision: the exact person is the subject of the request."
+              "Mock decision: the exact person is the subject of the request.",
           };
         }
 
         const personNameNeeded =
-          lowerPrompt.includes(
-            "include my name"
-          ) ||
-          lowerPrompt.includes(
-            "sign it as"
-          ) ||
-          lowerPrompt.includes(
-            "mention my name"
-          ) ||
-          lowerPrompt.includes(
-            "use my name"
-          );
+          lowerPrompt.includes("include my name") ||
+          lowerPrompt.includes("sign it as") ||
+          lowerPrompt.includes("mention my name") ||
+          lowerPrompt.includes("use my name");
 
         if (personNameNeeded) {
           return {
@@ -434,7 +331,7 @@ function mockAnalysis(tokenizedPrompt) {
             action: "REPLACE",
             replacementType: "fictional",
             reason:
-              "Mock decision: a personal name is useful in the output, but the real identity is unnecessary."
+              "Mock decision: a personal name is useful in the output, but the real identity is unnecessary.",
           };
         }
 
@@ -442,8 +339,7 @@ function mockAnalysis(tokenizedPrompt) {
           token,
           action: "REPLACE",
           replacementType: "fictional",
-          reason:
-            "Mock decision: the exact identity is not necessary."
+          reason: "Mock decision: the exact identity is not necessary.",
         };
       }
 
@@ -452,18 +348,10 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       if (token.startsWith("[LOCATION_")) {
         const exactLocationIsSubject =
-          lowerPrompt.includes(
-            `weather in ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `restaurants in ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `where is ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `things to do in ${lowerToken}`
-          );
+          lowerPrompt.includes(`weather in ${lowerToken}`) ||
+          lowerPrompt.includes(`restaurants in ${lowerToken}`) ||
+          lowerPrompt.includes(`where is ${lowerToken}`) ||
+          lowerPrompt.includes(`things to do in ${lowerToken}`);
 
         if (exactLocationIsSubject) {
           return {
@@ -471,7 +359,7 @@ function mockAnalysis(tokenizedPrompt) {
             action: "KEEP",
             replacementType: null,
             reason:
-              "Mock decision: the exact location is necessary to answer the request correctly."
+              "Mock decision: the exact location is necessary to answer the request correctly.",
           };
         }
 
@@ -480,7 +368,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "REPLACE",
           replacementType: "semantic",
           reason:
-            "Mock decision: the location context matters, but the exact place is not necessary."
+            "Mock decision: the location context matters, but the exact place is not necessary.",
         };
       }
 
@@ -493,7 +381,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "GENERALIZE",
           replacementType: "generalized",
           reason:
-            "Mock decision: the approximate amount preserves useful context without exposing the exact value."
+            "Mock decision: the approximate amount preserves useful context without exposing the exact value.",
         };
       }
 
@@ -502,15 +390,9 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       if (token.startsWith("[EMAIL_")) {
         const exactEmailNeeded =
-          lowerPrompt.includes(
-            `send it to ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `include ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `use ${lowerToken}`
-          );
+          lowerPrompt.includes(`send it to ${lowerToken}`) ||
+          lowerPrompt.includes(`include ${lowerToken}`) ||
+          lowerPrompt.includes(`use ${lowerToken}`);
 
         if (exactEmailNeeded) {
           return {
@@ -518,7 +400,7 @@ function mockAnalysis(tokenizedPrompt) {
             action: "REPLACE",
             replacementType: "fictional",
             reason:
-              "Mock decision: an email value is needed in the output, but the real address is not necessary."
+              "Mock decision: an email value is needed in the output, but the real address is not necessary.",
           };
         }
 
@@ -527,7 +409,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "REMOVE",
           replacementType: null,
           reason:
-            "Mock decision: the email address is unnecessary for the requested task."
+            "Mock decision: the email address is unnecessary for the requested task.",
         };
       }
 
@@ -536,15 +418,9 @@ function mockAnalysis(tokenizedPrompt) {
       // -----------------------------
       if (token.startsWith("[PHONE_")) {
         const phoneNeeded =
-          lowerPrompt.includes(
-            `call me at ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `include ${lowerToken}`
-          ) ||
-          lowerPrompt.includes(
-            `use ${lowerToken}`
-          );
+          lowerPrompt.includes(`call me at ${lowerToken}`) ||
+          lowerPrompt.includes(`include ${lowerToken}`) ||
+          lowerPrompt.includes(`use ${lowerToken}`);
 
         if (phoneNeeded) {
           return {
@@ -552,7 +428,7 @@ function mockAnalysis(tokenizedPrompt) {
             action: "REPLACE",
             replacementType: "fictional",
             reason:
-              "Mock decision: a phone number is needed in the output, but the real number is not necessary."
+              "Mock decision: a phone number is needed in the output, but the real number is not necessary.",
           };
         }
 
@@ -560,8 +436,7 @@ function mockAnalysis(tokenizedPrompt) {
           token,
           action: "REMOVE",
           replacementType: null,
-          reason:
-            "Mock decision: the phone number is unnecessary."
+          reason: "Mock decision: the phone number is unnecessary.",
         };
       }
 
@@ -574,7 +449,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "REMOVE",
           replacementType: null,
           reason:
-            "Mock decision: the Social Security Number is unnecessary and highly sensitive."
+            "Mock decision: the Social Security Number is unnecessary and highly sensitive.",
         };
       }
 
@@ -587,7 +462,7 @@ function mockAnalysis(tokenizedPrompt) {
           action: "REMOVE",
           replacementType: null,
           reason:
-            "Mock decision: the credit card number is unnecessary and highly sensitive."
+            "Mock decision: the credit card number is unnecessary and highly sensitive.",
         };
       }
 
@@ -598,9 +473,8 @@ function mockAnalysis(tokenizedPrompt) {
         token,
         action: "KEEP",
         replacementType: null,
-        reason:
-          "Mock decision: preserve the original value."
+        reason: "Mock decision: preserve the original value.",
       };
-    })
+    }),
   };
 }

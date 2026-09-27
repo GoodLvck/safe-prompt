@@ -23,13 +23,8 @@
 
   "web_accessible_resources": [
     {
-      "resources": [
-        "wasm/*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["wasm/*"],
+      "matches": ["<all_urls>"]
     }
   ]
-
 }

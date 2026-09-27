@@ -1,4 +1,4 @@
-import {pipeline, env} from "@huggingface/transformers";
+import { pipeline, env } from "@huggingface/transformers";
 
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL("wasm/");
 
@@ -8,7 +8,7 @@ export async function getNERPipeline() {
   if (!nerPipeline) {
     nerPipeline = await pipeline(
       "token-classification",
-      "Xenova/bert-base-NER"
+      "Xenova/bert-base-NER",
     );
   }
 
@@ -19,15 +19,12 @@ export async function detectNamedEntities(text) {
   const ner = await getNERPipeline();
 
   const results = await ner(text, {
-    aggregation_strategy: "simple"
+    aggregation_strategy: "simple",
   });
 
   return results
     .map((entity) => {
-      const type =
-        normalizeEntityType(
-          entity.entity_group
-        );
+      const type = normalizeEntityType(entity.entity_group);
 
       if (!type) return null;
 
@@ -42,7 +39,7 @@ export async function detectNamedEntities(text) {
 
         confidence: entity.score,
 
-        source: "ner"
+        source: "ner",
       };
     })
     .filter(Boolean);

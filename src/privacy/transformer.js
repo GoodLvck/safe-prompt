@@ -1,8 +1,4 @@
-export function transformPrompt(
-  tokenizedPrompt,
-  decisions,
-  privateMap
-) {
+export function transformPrompt(tokenizedPrompt, decisions, privateMap) {
   let result = tokenizedPrompt;
 
   const report = [];
@@ -16,31 +12,25 @@ export function transformPrompt(
       continue;
     }
 
-    const originalValue =
-      privateItem.originalValue;
+    const originalValue = privateItem.originalValue;
 
     switch (decision.action) {
-
       // -----------------------------
       // KEEP
       // -----------------------------
       case "KEEP": {
-        result = result.replaceAll(
-          token,
-          originalValue
-        );
+        result = result.replaceAll(token, originalValue);
 
         report.push({
           token,
           action: "KEEP",
           originalValue,
           replacementValue: originalValue,
-          reason: decision.reason
+          reason: decision.reason,
         });
 
         break;
       }
-
 
       // -----------------------------
       // REMOVE
@@ -48,19 +38,12 @@ export function transformPrompt(
       case "REMOVE": {
         const before = result;
 
-        result = removeTokenSentence(
-          result,
-          token
-        );
+        result = removeTokenSentence(result, token);
 
-        // Si no hemos podido eliminar
-        // una frase completa,
-        // eliminamos solo el token.
+        // If a complete sentence could not be removed,
+        // remove only the token instead.
         if (before === result) {
-          result = result.replaceAll(
-            token,
-            ""
-          );
+          result = result.replaceAll(token, "");
         }
 
         report.push({
@@ -68,35 +51,30 @@ export function transformPrompt(
           action: "REMOVE",
           originalValue,
           replacementValue: null,
-          reason: decision.reason
+          reason: decision.reason,
         });
 
         break;
       }
 
-
       // -----------------------------
       // REPLACE
       // -----------------------------
       case "REPLACE": {
-        const replacement =
-          createReplacement(
-            privateItem,
-            decision,
-            result,
-            token
-          );
-
-        result = result.replaceAll(
+        const replacement = createReplacement(
+          privateItem,
+          decision,
+          result,
           token,
-          replacement
         );
 
-        // Guardamos por TOKEN,
-        // no por replacement.
+        result = result.replaceAll(token, replacement);
+
+        // Store the mapping by token,
+        // not by replacement value.
         replacementMap[token] = {
           originalValue,
-          replacementValue: replacement
+          replacementValue: replacement,
         };
 
         report.push({
@@ -104,38 +82,30 @@ export function transformPrompt(
           action: "REPLACE",
           originalValue,
           replacementValue: replacement,
-          reason: decision.reason
+          reason: decision.reason,
         });
 
         break;
       }
 
-
       // -----------------------------
       // GENERALIZE
       // -----------------------------
       case "GENERALIZE": {
-        const generalized =
-          generalizeValue(
-            privateItem
-          );
+        const generalized = generalizeValue(privateItem);
 
-        result = result.replaceAll(
-          token,
-          generalized
-        );
+        result = result.replaceAll(token, generalized);
 
         report.push({
           token,
           action: "GENERALIZE",
           originalValue,
           replacementValue: generalized,
-          reason: decision.reason
+          reason: decision.reason,
         });
 
         break;
       }
-
 
       // -----------------------------
       // FALLBACK
@@ -144,94 +114,64 @@ export function transformPrompt(
         // Si llega una acción desconocida,
         // preferimos KEEP para no romper
         // el significado del prompt.
-        result = result.replaceAll(
-          token,
-          originalValue
-        );
+        result = result.replaceAll(token, originalValue);
 
         report.push({
           token,
           action: "KEEP",
           originalValue,
           replacementValue: originalValue,
-          reason:
-            "Fallback: unknown privacy action."
+          reason: "Fallback: unknown privacy action.",
         });
       }
     }
   }
 
   return {
-    protectedPrompt:
-      cleanPrompt(result),
+    protectedPrompt: cleanPrompt(result),
 
     report,
 
-    replacementMap
+    replacementMap,
   };
 }
-
 
 // --------------------------------------------------
 // REPLACEMENTS
 // --------------------------------------------------
 
-function createReplacement(
-  privateItem,
-  decision,
-  text,
-  token
-) {
-  if (
-    decision.replacementType === "fictional"
-  ) {
-    return createFictionalReplacement(
-      privateItem,
-      text,
-      token
-    );
+function createReplacement(privateItem, decision, text, token) {
+  if (decision.replacementType === "fictional") {
+    return createFictionalReplacement(privateItem, text, token);
   }
 
-  return createSemanticReplacement(
-    privateItem,
-    text,
-    token
-  );
+  return createSemanticReplacement(privateItem, text, token);
 }
 
-function createSemanticReplacement(
-  privateItem,
-  text,
-  token
-) {
-  const context = getTokenContext(
-    text,
-    token
-  ).toLowerCase();
+function createSemanticReplacement(privateItem, text, token) {
+  const context = getTokenContext(text, token).toLowerCase();
 
   switch (privateItem.type) {
-
     case "person":
       return "the person";
 
     case "organization": {
       if (
-        /\b(study|studying|student|university|college|school|class|course)\b/
-          .test(context)
+        /\b(study|studying|student|university|college|school|class|course)\b/.test(
+          context,
+        )
       ) {
         return "my university";
       }
 
       if (
-        /\b(work|working|job|employee|employer|salary|boss)\b/
-          .test(context)
+        /\b(work|working|job|employee|employer|salary|boss)\b/.test(context)
       ) {
         return "my employer";
       }
 
       if (
-        /\b(hospital|doctor|patient|treated|clinic|medical)\b/
-          .test(context)
+        /\b(hospital|doctor|patient|treated|clinic|medical)\b/.test(context)
       ) {
         return "my healthcare provider";
       }
@@ -240,17 +180,11 @@ function createSemanticReplacement(
     }
 
     case "location": {
-      if (
-        /\b(city|live|living|town|restaurants|local)\b/
-          .test(context)
-      ) {
+      if (/\b(city|live|living|town|restaurants|local)\b/.test(context)) {
         return "my city";
       }
 
-      if (
-        /\b(country|nationality|abroad|international)\b/
-          .test(context)
-      ) {
+      if (/\b(country|nationality|abroad|international)\b/.test(context)) {
         return "my country";
       }
 
@@ -268,10 +202,7 @@ function createSemanticReplacement(
   }
 }
 
-function getTokenContext(
-  text,
-  token
-) {
+function getTokenContext(text, token) {
   const index = text.indexOf(token);
 
   if (index === -1) {
@@ -280,63 +211,42 @@ function getTokenContext(
 
   const contextRadius = 80;
 
-  const start = Math.max(
-    0,
-    index - contextRadius
-  );
+  const start = Math.max(0, index - contextRadius);
 
-  const end = Math.min(
-    text.length,
-    index + token.length + contextRadius
-  );
+  const end = Math.min(text.length, index + token.length + contextRadius);
 
-  return text.slice(
-    start,
-    end
-  );
+  return text.slice(start, end);
 }
 
-function createFictionalReplacement(
-  privateItem,
-  text,
-  token
-) {
-  const context = getTokenContext(
-    text,
-    token
-  ).toLowerCase();
+function createFictionalReplacement(privateItem, text, token) {
+  const context = getTokenContext(text, token).toLowerCase();
 
   switch (privateItem.type) {
-
     case "person":
       return "Jordan Lee";
 
     case "organization": {
       if (
-        /\b(study|student|university|college|school|class|course)\b/
-          .test(context)
+        /\b(study|student|university|college|school|class|course)\b/.test(
+          context,
+        )
       ) {
         return "Northbridge University";
       }
 
       if (
-        /\b(work|job|employee|employer|company|salary|boss)\b/
-          .test(context)
+        /\b(work|job|employee|employer|company|salary|boss)\b/.test(context)
       ) {
         return "BrightPath Technologies";
       }
 
       if (
-        /\b(hospital|doctor|patient|clinic|medical|treated)\b/
-          .test(context)
+        /\b(hospital|doctor|patient|clinic|medical|treated)\b/.test(context)
       ) {
         return "Riverside Medical Center";
       }
 
-      if (
-        /\b(bank|account|loan|mortgage|finance)\b/
-          .test(context)
-      ) {
+      if (/\b(bank|account|loan|mortgage|finance)\b/.test(context)) {
         return "Summit Bank";
       }
 
@@ -344,10 +254,7 @@ function createFictionalReplacement(
     }
 
     case "location": {
-      if (
-        /\b(country|nationality|abroad|international)\b/
-          .test(context)
-      ) {
+      if (/\b(country|nationality|abroad|international)\b/.test(context)) {
         return "Exampleland";
       }
 
@@ -365,28 +272,20 @@ function createFictionalReplacement(
   }
 }
 
-
 // --------------------------------------------------
 // GENERALIZATION
 // --------------------------------------------------
 
-function generalizeValue(
-  privateItem
-) {
+function generalizeValue(privateItem) {
   if (privateItem.type === "money") {
-    return generalizeMoney(
-      privateItem.originalValue
-    );
+    return generalizeMoney(privateItem.originalValue);
   }
 
   return `[${privateItem.type.toUpperCase()}]`;
 }
 
-
 function generalizeMoney(value) {
-  const number = Number(
-    value.replace(/[$,]/g, "")
-  );
+  const number = Number(value.replace(/[$,]/g, ""));
 
   if (Number.isNaN(number)) {
     return "an approximate amount";
@@ -395,31 +294,15 @@ function generalizeMoney(value) {
   let rounded;
 
   if (number < 1000) {
-    rounded =
-      Math.round(
-        number / 100
-      ) * 100;
+    rounded = Math.round(number / 100) * 100;
+  } else if (number < 10000) {
+    rounded = Math.round(number / 500) * 500;
+  } else {
+    rounded = Math.round(number / 5000) * 5000;
   }
 
-  else if (number < 10000) {
-    rounded =
-      Math.round(
-        number / 500
-      ) * 500;
-  }
-
-  else {
-    rounded =
-      Math.round(
-        number / 5000
-      ) * 5000;
-  }
-
-  return `about $${rounded.toLocaleString(
-    "en-US"
-  )}`;
+  return `about $${rounded.toLocaleString("en-US")}`;
 }
-
 
 // --------------------------------------------------
 // REMOVE ENTIRE SENTENCES
@@ -434,130 +317,73 @@ function removeTokenSentence(text, token) {
         return true;
       }
 
-      return !isSentenceOnlyAboutPrivateValue(
-        sentence,
-        token
-      );
+      return !isSentenceOnlyAboutPrivateValue(sentence, token);
     })
     .map((sentence) => {
-      return removeTokenFromSentence(
-        sentence,
-        token
-      );
+      return removeTokenFromSentence(sentence, token);
     })
     .filter(Boolean)
     .join(" ");
 }
 
-function isSentenceOnlyAboutPrivateValue(
-  sentence,
-  token
-) {
-  const escapedToken =
-    escapeRegExp(token);
+function isSentenceOnlyAboutPrivateValue(sentence, token) {
+  const escapedToken = escapeRegExp(token);
 
   const patterns = [
     // My email is [EMAIL_1].
-    new RegExp(
-      `^my\\s+.+?\\s+is\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^my\\s+.+?\\s+is\\s+${escapedToken}[.!?]?$`, "i"),
 
     // My salary is [MONEY_1].
-    new RegExp(
-      `^my\\s+.+?\\s+is\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^my\\s+.+?\\s+is\\s+${escapedToken}[.!?]?$`, "i"),
 
     // I earn [MONEY_1].
-    new RegExp(
-      `^i\\s+(earn|make)\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^i\\s+(earn|make)\\s+${escapedToken}[.!?]?$`, "i"),
 
     // I live in [LOCATION_1].
-    new RegExp(
-      `^i\\s+live\\s+in\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^i\\s+live\\s+in\\s+${escapedToken}[.!?]?$`, "i"),
 
     // I work at [ORG_1].
-    new RegExp(
-      `^i\\s+work\\s+at\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^i\\s+work\\s+at\\s+${escapedToken}[.!?]?$`, "i"),
 
     // I study at [ORG_1].
-    new RegExp(
-      `^i\\s+study\\s+at\\s+${escapedToken}[.!?]?$`,
-      "i"
-    ),
+    new RegExp(`^i\\s+study\\s+at\\s+${escapedToken}[.!?]?$`, "i"),
 
     // My name is [PERSON_1].
-    new RegExp(
-      `^my\\s+name\\s+is\\s+${escapedToken}[.!?]?$`,
-      "i"
-    )
+    new RegExp(`^my\\s+name\\s+is\\s+${escapedToken}[.!?]?$`, "i"),
   ];
 
-  return patterns.some(
-    (pattern) =>
-      pattern.test(sentence.trim())
-  );
+  return patterns.some((pattern) => pattern.test(sentence.trim()));
 }
 
-function removePrivateClause(
-  sentence,
-  token
-) {
-  const escapedToken =
-    escapeRegExp(token);
+function removePrivateClause(sentence, token) {
+  const escapedToken = escapeRegExp(token);
 
   const patterns = [
     // I work at [ORG_1] and manage a small team.
     {
-      regex: new RegExp(
-        `^I\\s+work\\s+at\\s+${escapedToken}\\s+and\\s+`,
-        "i"
-      ),
-      replacement: "I "
+      regex: new RegExp(`^I\\s+work\\s+at\\s+${escapedToken}\\s+and\\s+`, "i"),
+      replacement: "I ",
     },
 
     // I live in [LOCATION_1] but work remotely.
     {
-      regex: new RegExp(
-        `^I\\s+live\\s+in\\s+${escapedToken}\\s+but\\s+`,
-        "i"
-      ),
-      replacement: "I "
-    }
+      regex: new RegExp(`^I\\s+live\\s+in\\s+${escapedToken}\\s+but\\s+`, "i"),
+      replacement: "I ",
+    },
   ];
 
-  for (const {
-    regex,
-    replacement
-  } of patterns) {
+  for (const { regex, replacement } of patterns) {
     if (regex.test(sentence)) {
-      return sentence.replace(
-        regex,
-        replacement
-      );
+      return sentence.replace(regex, replacement);
     }
   }
 
   return sentence;
 }
 
-function removeTokenFromSentence(
-  sentence,
-  token
-) {
+function removeTokenFromSentence(sentence, token) {
   // First try removing a whole clause
-  let result =
-    removePrivateClause(
-      sentence,
-      token
-    );
+  let result = removePrivateClause(sentence, token);
 
   // If a clause was successfully removed,
   // return the cleaned sentence immediately.
@@ -568,51 +394,28 @@ function removeTokenFromSentence(
       .trim();
   }
 
-  const escapedToken =
-    escapeRegExp(token);
+  const escapedToken = escapeRegExp(token);
 
   result = sentence;
 
-  const tokenEnd =
-    `(?=\\s|[,.!?;:]|$)`;
+  const tokenEnd = `(?=\\s|[,.!?;:]|$)`;
 
   const contextualPatterns = [
-    new RegExp(
-      `\\bto\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    ),
+    new RegExp(`\\bto\\s+${escapedToken}${tokenEnd}`, "gi"),
 
-    new RegExp(
-      `\\bat\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    ),
+    new RegExp(`\\bat\\s+${escapedToken}${tokenEnd}`, "gi"),
 
-    new RegExp(
-      `\\bin\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    ),
+    new RegExp(`\\bin\\s+${escapedToken}${tokenEnd}`, "gi"),
 
-    new RegExp(
-      `\\bfrom\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    ),
+    new RegExp(`\\bfrom\\s+${escapedToken}${tokenEnd}`, "gi"),
 
-    new RegExp(
-      `\\bwith\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    ),
+    new RegExp(`\\bwith\\s+${escapedToken}${tokenEnd}`, "gi"),
 
-    new RegExp(
-      `\\bfor\\s+${escapedToken}${tokenEnd}`,
-      "gi"
-    )
+    new RegExp(`\\bfor\\s+${escapedToken}${tokenEnd}`, "gi"),
   ];
 
   for (const pattern of contextualPatterns) {
-    result = result.replace(
-      pattern,
-      ""
-    );
+    result = result.replace(pattern, "");
   }
 
   result = result
@@ -625,10 +428,7 @@ function removeTokenFromSentence(
 }
 
 function escapeRegExp(value) {
-  return value.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // --------------------------------------------------

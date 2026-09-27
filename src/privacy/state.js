@@ -12,7 +12,7 @@ export const safePromptState = {
   replacementMap: {},
   report: [],
 
-  activeElement: null
+  activeElement: null,
 };
 
 export function resetState() {

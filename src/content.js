@@ -1,7 +1,15 @@
 import { detectSensitiveEntities } from "./detection/detector.js";
 import { tokenizePrompt } from "./privacy/tokenizer.js";
 import { safePromptState } from "./privacy/state.js";
-import { showWarning, showManualReview, removeExistingWarning, showProtectionConfirmation, showProtectionReport, showAnalyzingState, showProtectionError } from "./ui/warningPanel.js";
+import {
+  showWarning,
+  showManualReview,
+  removeExistingWarning,
+  showProtectionConfirmation,
+  showProtectionReport,
+  showAnalyzingState,
+  showProtectionError,
+} from "./ui/warningPanel.js";
 import { transformPrompt } from "./privacy/transformer.js";
 import { getTextFromElement, setTextToElement } from "./utils/dom.js";
 
@@ -12,9 +20,7 @@ function isSupportedInput(element) {
   if (!element) return false;
 
   // Ignore SafePrompt's own UI
-  if (
-    element.closest?.("#safeprompt-warning")
-  ) {
+  if (element.closest?.("#safeprompt-warning")) {
     return false;
   }
 
@@ -27,16 +33,9 @@ function isSupportedInput(element) {
   }
 
   if (element.tagName === "INPUT") {
-    const type =
-      (element.type || "text").toLowerCase();
+    const type = (element.type || "text").toLowerCase();
 
-    const allowedTypes = [
-      "text",
-      "search",
-      "email",
-      "tel",
-      "url"
-    ];
+    const allowedTypes = ["text", "search", "email", "tel", "url"];
 
     return allowedTypes.includes(type);
   }
@@ -44,38 +43,21 @@ function isSupportedInput(element) {
   return false;
 }
 function handleProtectionError(error) {
-  console.error(
-    "SafePrompt protection error:",
-    error
-  );
+  console.error("SafePrompt protection error:", error);
 
-  let message =
-    "SafePrompt couldn't analyze this prompt.";
+  let message = "SafePrompt couldn't analyze this prompt.";
 
-  if (
-    error.message?.includes("429")
-  ) {
-    message =
-      "AI rate limit reached. Try again later or use manual review.";
+  if (error.message?.includes("429")) {
+    message = "AI rate limit reached. Try again later or use manual review.";
+  } else if (error.message?.toLowerCase().includes("network")) {
+    message = "Network error. Check your connection and try again.";
   }
 
-  else if (
-    error.message?.toLowerCase()
-      .includes("network")
-  ) {
-    message =
-      "Network error. Check your connection and try again.";
-  }
+  showProtectionError(safePromptState.activeElement, message, {
+    onRetry: handleAutoProtect,
 
-  showProtectionError(
-    safePromptState.activeElement,
-    message,
-    {
-      onRetry: handleAutoProtect,
-
-      onClose: removeExistingWarning
-    }
-  );
+    onClose: removeExistingWarning,
+  });
 }
 
 async function handlePromptInput(event) {
@@ -89,65 +71,44 @@ async function handlePromptInput(event) {
     return;
   }
 
-  const text =
-    getTextFromElement(element);
+  const text = getTextFromElement(element);
 
   if (!text || !text.trim()) {
     removeExistingWarning();
     return;
   }
 
-  const detectedItems =
-    await detectSensitiveEntities(text);
+  const detectedItems = await detectSensitiveEntities(text);
 
   if (detectedItems.length === 0) {
     removeExistingWarning();
     return;
   }
 
-  const {
-    tokenizedText,
-    items,
-    privateMap
-  } = tokenizePrompt(
+  const { tokenizedText, items, privateMap } = tokenizePrompt(
     text,
-    detectedItems
+    detectedItems,
   );
 
-  safePromptState.originalPrompt =
-    text;
+  safePromptState.originalPrompt = text;
 
-  safePromptState.tokenizedPrompt =
-    tokenizedText;
+  safePromptState.tokenizedPrompt = tokenizedText;
 
-  safePromptState.detectedItems =
-    items;
+  safePromptState.detectedItems = items;
 
-  safePromptState.privateMap =
-    privateMap;
+  safePromptState.privateMap = privateMap;
 
-  safePromptState.activeElement =
-    element;
+  safePromptState.activeElement = element;
 
-  showWarning(
-    element,
-    safePromptState,
-    {
-      onAutoProtect:
-        handleAutoProtect,
+  showWarning(element, safePromptState, {
+    onAutoProtect: handleAutoProtect,
 
-      onReview: () => {
-        showManualReview(
-          element,
-          safePromptState,
-          {
-            onApplyManual:
-              handleManualProtect
-          }
-        );
-      }
-    }
-  );
+    onReview: () => {
+      showManualReview(element, safePromptState, {
+        onApplyManual: handleManualProtect,
+      });
+    },
+  });
 }
 
 function handleManualProtect(manualDecisions) {
@@ -156,19 +117,14 @@ function handleManualProtect(manualDecisions) {
   const transformation = transformPrompt(
     safePromptState.tokenizedPrompt,
     manualDecisions,
-    safePromptState.privateMap
+    safePromptState.privateMap,
   );
 
-  safePromptState.protectedPrompt =
-    transformation.protectedPrompt;
+  safePromptState.protectedPrompt = transformation.protectedPrompt;
 
-  safePromptState.replacementMap =
-    transformation.replacementMap;
+  safePromptState.replacementMap = transformation.replacementMap;
 
-  safePromptState.report =
-    transformation.report;
-
-  clearTimeout(typingTimer);
+  safePromptState.report = transformation.report;
 
   clearTimeout(typingTimer);
 
@@ -176,21 +132,17 @@ function handleManualProtect(manualDecisions) {
 
   setTextToElement(
     safePromptState.activeElement,
-    safePromptState.protectedPrompt
+    safePromptState.protectedPrompt,
   );
 
   setTimeout(() => {
     isSafePromptUpdating = false;
   }, 0);
 
-  showProtectionConfirmation(
-    safePromptState.activeElement,
-    safePromptState,
-    {
-      onReport: handleReport,
-      onUndo: handleUndo
-    }
-  );
+  showProtectionConfirmation(safePromptState.activeElement, safePromptState, {
+    onReport: handleReport,
+    onUndo: handleUndo,
+  });
 }
 
 async function handleAutoProtect() {
@@ -201,36 +153,27 @@ async function handleAutoProtect() {
   isAutoProtectRunning = true;
 
   try {
-    showAnalyzingState(
-      safePromptState.activeElement
+    showAnalyzingState(safePromptState.activeElement);
+
+    const response = await requestPrivacyAnalysis(
+      safePromptState.tokenizedPrompt,
     );
 
-    const response =
-      await requestPrivacyAnalysis(
-        safePromptState.tokenizedPrompt
-      );
+    const decisions = response.decisions;
 
-    const decisions =
-      response.decisions;
+    safePromptState.aiDecisions = decisions;
 
-    safePromptState.aiDecisions =
-      decisions;
+    const transformation = transformPrompt(
+      safePromptState.tokenizedPrompt,
+      decisions,
+      safePromptState.privateMap,
+    );
 
-    const transformation =
-      transformPrompt(
-        safePromptState.tokenizedPrompt,
-        decisions,
-        safePromptState.privateMap
-      );
+    safePromptState.protectedPrompt = transformation.protectedPrompt;
 
-    safePromptState.protectedPrompt =
-      transformation.protectedPrompt;
+    safePromptState.replacementMap = transformation.replacementMap;
 
-    safePromptState.replacementMap =
-      transformation.replacementMap;
-
-    safePromptState.report =
-      transformation.report;
+    safePromptState.report = transformation.report;
 
     clearTimeout(typingTimer);
 
@@ -238,46 +181,32 @@ async function handleAutoProtect() {
 
     setTextToElement(
       safePromptState.activeElement,
-      safePromptState.protectedPrompt
+      safePromptState.protectedPrompt,
     );
 
     setTimeout(() => {
       isSafePromptUpdating = false;
     }, 0);
 
-    showProtectionConfirmation(
-      safePromptState.activeElement,
-      safePromptState,
-      {
-        onReport: handleReport,
-        onUndo: handleUndo
-      }
-    );
-  }
-
-  catch (error) {
+    showProtectionConfirmation(safePromptState.activeElement, safePromptState, {
+      onReport: handleReport,
+      onUndo: handleUndo,
+    });
+  } catch (error) {
     handleProtectionError(error);
-  }
-
-  finally {
+  } finally {
     isAutoProtectRunning = false;
   }
 }
 
-async function requestPrivacyAnalysis(
-  tokenizedPrompt
-) {
-  const response =
-    await chrome.runtime.sendMessage({
-      type: "ANALYZE_PROMPT",
-      tokenizedPrompt
-    });
+async function requestPrivacyAnalysis(tokenizedPrompt) {
+  const response = await chrome.runtime.sendMessage({
+    type: "ANALYZE_PROMPT",
+    tokenizedPrompt,
+  });
 
   if (!response?.success) {
-    throw new Error(
-      response?.error ||
-      "SafePrompt analysis failed."
-    );
+    throw new Error(response?.error || "SafePrompt analysis failed.");
   }
 
   return response.result;
@@ -285,40 +214,26 @@ async function requestPrivacyAnalysis(
 
 let typingTimer;
 
-document.addEventListener(
-  "input",
-  (event) => {
-
-    // Ignore changes made by SafePrompt itself
-    if (isSafePromptUpdating) {
-      return;
-    }
-
-    // Ignore SafePrompt UI controls
-    if (
-      event.target.closest?.(
-        "#safeprompt-warning"
-      )
-    ) {
-      return;
-    }
-
-    clearTimeout(typingTimer);
-
-    typingTimer = setTimeout(
-      () => {
-        handlePromptInput(event);
-      },
-      500
-    );
+document.addEventListener("input", (event) => {
+  // Ignore changes made by SafePrompt itself
+  if (isSafePromptUpdating) {
+    return;
   }
-);
+
+  // Ignore SafePrompt UI controls
+  if (event.target.closest?.("#safeprompt-warning")) {
+    return;
+  }
+
+  clearTimeout(typingTimer);
+
+  typingTimer = setTimeout(() => {
+    handlePromptInput(event);
+  }, 500);
+});
 
 function handleUndo() {
-  if (
-    !safePromptState.activeElement ||
-    !safePromptState.originalPrompt
-  ) {
+  if (!safePromptState.activeElement || !safePromptState.originalPrompt) {
     return;
   }
 
@@ -328,7 +243,7 @@ function handleUndo() {
 
   setTextToElement(
     safePromptState.activeElement,
-    safePromptState.originalPrompt
+    safePromptState.originalPrompt,
   );
 
   setTimeout(() => {
@@ -339,22 +254,18 @@ function handleUndo() {
 }
 
 function handleReport() {
-  showProtectionReport(
-    safePromptState.activeElement,
-    safePromptState,
-    {
-      onBack: () => {
-        showProtectionConfirmation(
-          safePromptState.activeElement,
-          safePromptState,
-          {
-            onReport: handleReport,
-            onUndo: handleUndo
-          }
-        );
-      },
+  showProtectionReport(safePromptState.activeElement, safePromptState, {
+    onBack: () => {
+      showProtectionConfirmation(
+        safePromptState.activeElement,
+        safePromptState,
+        {
+          onReport: handleReport,
+          onUndo: handleUndo,
+        },
+      );
+    },
 
-      onUndo: handleUndo
-    }
-  );
+    onUndo: handleUndo,
+  });
 }

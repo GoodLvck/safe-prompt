@@ -1,8 +1,7 @@
 import { setTextToElement } from "../utils/dom.js";
 
 export function removeExistingWarning() {
-  const existing =
-    document.getElementById("safeprompt-warning");
+  const existing = document.getElementById("safeprompt-warning");
 
   if (existing) {
     existing.remove();
@@ -12,37 +11,24 @@ export function removeExistingWarning() {
 export function positionWarning(warning, element) {
   const rect = element.getBoundingClientRect();
 
-  warning.style.top =
-    `${window.scrollY + rect.top - warning.offsetHeight - 12}px`;
+  warning.style.top = `${window.scrollY + rect.top - warning.offsetHeight - 12}px`;
 
-  warning.style.left =
-    `${window.scrollX + rect.left}px`;
+  warning.style.left = `${window.scrollX + rect.left}px`;
 }
 
-export function showWarning(
-  element,
-  state,
-  {
-    onAutoProtect,
-    onReview
-  }
-) {
+export function showWarning(element, state, { onAutoProtect, onReview }) {
   removeExistingWarning();
 
   const warning = document.createElement("div");
   warning.id = "safeprompt-warning";
 
   const uniqueItems = [
-    ...new Map(
-      state.detectedItems.map(item => [
-        item.token,
-        item
-      ])
-    ).values()
+    ...new Map(state.detectedItems.map((item) => [item.token, item])).values(),
   ];
 
   const itemsHtml = uniqueItems
-    .map((item) => `
+    .map(
+      (item) => `
       <div class="sp-item">
         <div class="sp-item-info">
           <div class="sp-item-label">
@@ -58,7 +44,8 @@ export function showWarning(
           </div>
         </div>
       </div>
-    `)
+    `,
+    )
     .join("");
 
   warning.innerHTML = `
@@ -101,10 +88,7 @@ export function showWarning(
 
   document
     .getElementById("sp-close-button")
-    .addEventListener(
-      "click",
-      removeExistingWarning
-    );
+    .addEventListener("click", removeExistingWarning);
 
   document
     .getElementById("sp-auto-protect")
@@ -113,35 +97,25 @@ export function showWarning(
     });
 
   document
-  .getElementById("sp-review-manually")
-  .addEventListener("click", () => {
-    onReview();
-  });
+    .getElementById("sp-review-manually")
+    .addEventListener("click", () => {
+      onReview();
+    });
 }
 
-export function showManualReview(
-  element,
-  state,
-  {
-    onApplyManual
-  }
-) {
+export function showManualReview(element, state, { onApplyManual }) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
   panel.id = "safeprompt-warning";
 
   const uniqueItems = [
-    ...new Map(
-      state.detectedItems.map(item => [
-        item.token,
-        item
-      ])
-    ).values()
+    ...new Map(state.detectedItems.map((item) => [item.token, item])).values(),
   ];
 
   const itemsHtml = uniqueItems
-    .map((item, index) => `
+    .map(
+      (item, index) => `
       <div class="sp-item" data-index="${index}">
         <div class="sp-item-info">
           <div class="sp-item-label">
@@ -198,7 +172,8 @@ export function showManualReview(
 
         </div>
       </div>
-    `)
+    `,
+    )
     .join("");
 
   panel.innerHTML = `
@@ -239,81 +214,56 @@ export function showManualReview(
 
   document
     .getElementById("sp-close-button")
-    .addEventListener(
-      "click",
-      removeExistingWarning
-    );
+    .addEventListener("click", removeExistingWarning);
 
   document
     .getElementById("sp-cancel-review")
-    .addEventListener(
-      "click",
-      removeExistingWarning
-    );
+    .addEventListener("click", removeExistingWarning);
 
-  document
-    .getElementById("sp-apply-review")
-    .addEventListener(
-      "click",
-      () => {
-        const manualDecisions =
-          uniqueItems.map((item, index) => {
-            const selected =
-              panel.querySelector(
-                `input[name="decision-${index}"]:checked`
-              );
+  document.getElementById("sp-apply-review").addEventListener("click", () => {
+    const manualDecisions = uniqueItems.map((item, index) => {
+      const selected = panel.querySelector(
+        `input[name="decision-${index}"]:checked`,
+      );
 
-            return {
-              token: item.token,
-              action:
-                selected?.value || "KEEP",
-              replacementType:
-                selected?.value === "REPLACE"
-                  ? "semantic"
-                  : selected?.value ===
-                    "GENERALIZE"
-                    ? "generalized"
-                    : null,
-              reason:
-                "Selected manually by the user."
-            };
-          });
+      return {
+        token: item.token,
+        action: selected?.value || "KEEP",
+        replacementType:
+          selected?.value === "REPLACE"
+            ? "semantic"
+            : selected?.value === "GENERALIZE"
+              ? "generalized"
+              : null,
+        reason: "Selected manually by the user.",
+      };
+    });
 
-        onApplyManual(
-          manualDecisions
-        );
-      }
-    );
+    onApplyManual(manualDecisions);
+  });
 }
 
 export function showProtectionConfirmation(
   element,
   state,
-  {
-    onReport,
-    onUndo
-  }
+  { onReport, onUndo },
 ) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
   panel.id = "safeprompt-warning";
 
-  const changedCount =
-    state.report.filter(
-      item => item.action !== "KEEP"
-    ).length;
+  const changedCount = state.report.filter(
+    (item) => item.action !== "KEEP",
+  ).length;
 
-  const keptCount =
-    state.report.filter(
-      item => item.action === "KEEP"
-    ).length;
+  const keptCount = state.report.filter(
+    (item) => item.action === "KEEP",
+  ).length;
   const analyzedCount = state.report.length;
 
   const analyzedLabel =
-    analyzedCount === 1
-      ? "private value analyzed"
-      : "private values analyzed";
+    analyzedCount === 1 ? "private value analyzed" : "private values analyzed";
 
   panel.innerHTML = `
     <div class="sp-header">
@@ -355,41 +305,20 @@ export function showProtectionConfirmation(
 
   document.body.appendChild(panel);
 
-  positionWarning(
-    panel,
-    element
-  );
+  positionWarning(panel, element);
 
   document
     .getElementById("sp-close-button")
-    .addEventListener(
-      "click",
-      removeExistingWarning
-    );
+    .addEventListener("click", removeExistingWarning);
 
   document
     .getElementById("sp-report-button")
-    .addEventListener(
-      "click",
-      onReport
-    );
+    .addEventListener("click", onReport);
 
-  document
-    .getElementById("sp-undo-button")
-    .addEventListener(
-      "click",
-      onUndo
-    );
+  document.getElementById("sp-undo-button").addEventListener("click", onUndo);
 }
 
-export function showProtectionReport(
-  element,
-  state,
-  {
-    onBack,
-    onUndo
-  }
-) {
+export function showProtectionReport(element, state, { onBack, onUndo }) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
@@ -407,12 +336,7 @@ export function showProtectionReport(
             <strong>Removed</strong>
           </div>
         `;
-      }
-
-      else if (
-        item.action === "REPLACE" ||
-        item.action === "GENERALIZE"
-      ) {
+      } else if (item.action === "REPLACE" || item.action === "GENERALIZE") {
         replacementHtml = `
           <div class="sp-report-change">
             <span>${escapeHtml(item.originalValue)}</span>
@@ -422,9 +346,7 @@ export function showProtectionReport(
             </strong>
           </div>
         `;
-      }
-
-      else {
+      } else {
         replacementHtml = `
           <div class="sp-report-change">
             <span>${escapeHtml(item.originalValue)}</span>
@@ -458,10 +380,7 @@ export function showProtectionReport(
     })
     .join("");
 
-  const replacementEntries =
-    Object.values(
-      state.replacementMap || {}
-    );
+  const replacementEntries = Object.values(state.replacementMap || {});
 
   const replacementReferenceHtml =
     replacementEntries.length > 0
@@ -477,33 +396,27 @@ export function showProtectionReport(
                 <div class="sp-reference-item">
 
                   <span class="sp-reference-fake">
-                    ${escapeHtml(
-                      item.replacementValue
-                    )}
+                    ${escapeHtml(item.replacementValue)}
                   </span>
 
                   <span>→</span>
 
                   <span class="sp-reference-original">
-                    ${escapeHtml(
-                      item.originalValue
-                    )}
+                    ${escapeHtml(item.originalValue)}
                   </span>
 
                 </div>
-              `
+              `,
             )
             .join("")}
         </div>
       `
       : "";
 
-      const reportCount = state.report.length;
+  const reportCount = state.report.length;
 
-      const reportLabel =
-        reportCount === 1
-          ? "private value analyzed"
-          : "private values analyzed";
+  const reportLabel =
+    reportCount === 1 ? "private value analyzed" : "private values analyzed";
 
   panel.innerHTML = `
     <div class="sp-header">
@@ -547,31 +460,15 @@ export function showProtectionReport(
 
   document.body.appendChild(panel);
 
-  positionWarning(
-    panel,
-    element
-  );
+  positionWarning(panel, element);
 
   document
     .getElementById("sp-close-button")
-    .addEventListener(
-      "click",
-      removeExistingWarning
-    );
+    .addEventListener("click", removeExistingWarning);
 
-  document
-    .getElementById("sp-report-back")
-    .addEventListener(
-      "click",
-      onBack
-    );
+  document.getElementById("sp-report-back").addEventListener("click", onBack);
 
-  document
-    .getElementById("sp-report-undo")
-    .addEventListener(
-      "click",
-      onUndo
-    );
+  document.getElementById("sp-report-undo").addEventListener("click", onUndo);
 }
 
 function escapeHtml(value) {
@@ -587,9 +484,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-export function showAnalyzingState(
-  element
-) {
+export function showAnalyzingState(element) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
@@ -609,20 +504,10 @@ export function showAnalyzingState(
 
   document.body.appendChild(panel);
 
-  positionWarning(
-    panel,
-    element
-  );
+  positionWarning(panel, element);
 }
 
-export function showProtectionError(
-  element,
-  message,
-  {
-    onRetry,
-    onClose
-  }
-) {
+export function showProtectionError(element, message, { onRetry, onClose }) {
   removeExistingWarning();
 
   const panel = document.createElement("div");
@@ -655,22 +540,9 @@ export function showProtectionError(
 
   document.body.appendChild(panel);
 
-  positionWarning(
-    panel,
-    element
-  );
+  positionWarning(panel, element);
 
-  document
-    .getElementById("sp-error-retry")
-    .addEventListener(
-      "click",
-      onRetry
-    );
+  document.getElementById("sp-error-retry").addEventListener("click", onRetry);
 
-  document
-    .getElementById("sp-close-button")
-    .addEventListener(
-      "click",
-      onClose
-    );
+  document.getElementById("sp-close-button").addEventListener("click", onClose);
 }
